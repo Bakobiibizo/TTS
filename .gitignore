@@ -130,3 +130,14 @@ TODO.txt
 data/*
 notebooks/data/*
 TTS/tts/layers/glow_tts/monotonic_align/core.c
+
+#output files
+*.wav
+*.mp3
+*.ogg
+*.flac
+*.m4a
+
+#input files
+in/*
+*.zip

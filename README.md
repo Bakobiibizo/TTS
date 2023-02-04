@@ -1,3 +1,11 @@
+# Building an audio book making TTS module
+
+Building off the Open source TTS models I wrote a simple python script that takes a text file and converts it to an audio book. The script is very simple and can be easily modified to suit your needs. The script uses the Mozilla TTS model and the LJSpeech dataset. The script is written in python and just uses the TTS library and its dependencies.
+
+I currently have it hardcoded to take a README.md file in a directory './in' but I should make it more universal. 
+
+
+
 <img src="https://user-images.githubusercontent.com/1402048/104139991-3fd15e00-53af-11eb-8640-3a78a64641dd.png" data-canonical-src="![TTS banner](https://user-images.githubusercontent.com/1402048/104139991-3fd15e00-53af-11eb-8640-3a78a64641dd.png =250x250)
 " width="256" height="256" align="right" />
 
@@ -240,7 +248,7 @@ This repository is governed by Mozilla's code of conduct and etiquette guideline
 2. Implement your changes.
 3. (if applicable) Add [Google Style](https://google.github.io/styleguide/pyguide.html#381-docstrings) docstrings.
 4. (if applicable) Implement a test case under ```tests``` folder.
-5. (Optional but Prefered) Run tests. 
+5. (Optional but Prefered) Run tests.
 ```bash
 ./run_tests.sh
 ```
@@ -250,8 +258,8 @@ pip install pylint cardboardlint
 cardboardlinter --refspec master
 ```
 7. Send a PR to ```dev``` branch, explain what the change is about.
-8. Let us discuss until we make it perfect :). 
-9. We merge it to the ```dev``` branch once things look good. 
+8. Let us discuss until we make it perfect :).
+9. We merge it to the ```dev``` branch once things look good.
 
 Feel free to ping us at any step you need help using our communication channels.
 
