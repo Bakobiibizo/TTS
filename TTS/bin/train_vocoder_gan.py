@@ -34,30 +34,31 @@ use_cuda, num_gpus = setup_torch_training_env(True, True)
 
 def setup_loader(ap, is_val=False, verbose=False):
     if is_val and not c.run_eval:
-        loader = None
-    else:
-        dataset = GANDataset(ap=ap,
-                             items=eval_data if is_val else train_data,
-                             seq_len=c.seq_len,
-                             hop_len=ap.hop_length,
-                             pad_short=c.pad_short,
-                             conv_pad=c.conv_pad,
-                             is_training=not is_val,
-                             return_segments=not is_val,
-                             use_noise_augment=c.use_noise_augment,
-                             use_cache=c.use_cache,
-                             verbose=verbose)
-        dataset.shuffle_mapping()
-        sampler = DistributedSampler(dataset, shuffle=True) if num_gpus > 1 else None
-        loader = DataLoader(dataset,
-                            batch_size=1 if is_val else c.batch_size,
-                            shuffle=False if num_gpus > 1 else True,
-                            drop_last=False,
-                            sampler=sampler,
-                            num_workers=c.num_val_loader_workers
-                            if is_val else c.num_loader_workers,
-                            pin_memory=False)
-    return loader
+        return None
+    dataset = GANDataset(ap=ap,
+                         items=eval_data if is_val else train_data,
+                         seq_len=c.seq_len,
+                         hop_len=ap.hop_length,
+                         pad_short=c.pad_short,
+                         conv_pad=c.conv_pad,
+                         is_training=not is_val,
+                         return_segments=not is_val,
+                         use_noise_augment=c.use_noise_augment,
+                         use_cache=c.use_cache,
+                         verbose=verbose)
+    dataset.shuffle_mapping()
+    sampler = DistributedSampler(dataset, shuffle=True) if num_gpus > 1 else None
+    return DataLoader(
+        dataset,
+        batch_size=1 if is_val else c.batch_size,
+        shuffle=num_gpus <= 1,
+        drop_last=False,
+        sampler=sampler,
+        num_workers=c.num_val_loader_workers
+        if is_val
+        else c.num_loader_workers,
+        pin_memory=False,
+    )
 
 
 def format_data(data):
@@ -162,13 +163,10 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
         if scheduler_G is not None:
             scheduler_G.step()
 
-        loss_dict = dict()
-        for key, value in loss_G_dict.items():
-            if isinstance(value, int):
-                loss_dict[key] = value
-            else:
-                loss_dict[key] = value.item()
-
+        loss_dict = {
+            key: value if isinstance(value, int) else value.item()
+            for key, value in loss_G_dict.items()
+        }
         ##############################
         # DISCRIMINATOR
         ##############################
@@ -192,10 +190,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
             # format D outputs
             if isinstance(D_out_fake, tuple):
                 scores_fake, feats_fake = D_out_fake
-                if D_out_real is None:
-                    scores_real, feats_real = None, None
-                else:
-                    scores_real, feats_real = D_out_real
+                scores_real, feats_real = (None, None) if D_out_real is None else D_out_real
             else:
                 scores_fake = D_out_fake
                 scores_real = D_out_real
@@ -215,11 +210,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
                 scheduler_D.step()
 
             for key, value in loss_D_dict.items():
-                if isinstance(value, (int, float)):
-                    loss_dict[key] = value
-                else:
-                    loss_dict[key] = value.item()
-
+                loss_dict[key] = value if isinstance(value, (int, float)) else value.item()
         step_time = time.time() - start_time
         epoch_time += step_time
 
@@ -227,10 +218,7 @@ def train(model_G, criterion_G, optimizer_G, model_D, criterion_D, optimizer_D,
         current_lr_G = list(optimizer_G.param_groups)[0]['lr']
         current_lr_D = list(optimizer_D.param_groups)[0]['lr']
 
-        # update avg stats
-        update_train_values = dict()
-        for key, value in loss_dict.items():
-            update_train_values['avg_' + key] = value
+        update_train_values = {f'avg_{key}': value for key, value in loss_dict.items()}
         update_train_values['avg_loader_time'] = loader_time
         update_train_values['avg_step_time'] = step_time
         keep_avg.update_values(update_train_values)

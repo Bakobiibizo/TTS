@@ -33,9 +33,7 @@ def __expand_currency(value: str, inflection: Dict[float, str]) -> str:
     if fraction > 0:
         fraction_unit = inflection.get(fraction/100, inflection[0.02])
         text.append(f"{fraction} {fraction_unit}")
-    if len(text) == 0:
-        return f"zero {inflection[2]}"
-    return " ".join(text)
+    return f"zero {inflection[2]}" if not text else " ".join(text)
 
 
 def _expand_currency(m: "re.Match") -> str:
@@ -80,9 +78,9 @@ def _expand_number(m):
         if num == 2000:
             return 'two thousand'
         if 2000 < num < 2010:
-            return 'two thousand ' + _inflect.number_to_words(num % 100)
+            return f'two thousand {_inflect.number_to_words(num % 100)}'
         if num % 100 == 0:
-            return _inflect.number_to_words(num // 100) + ' hundred'
+            return f'{_inflect.number_to_words(num // 100)} hundred'
         return _inflect.number_to_words(num,
                                         andword='',
                                         zero='oh',

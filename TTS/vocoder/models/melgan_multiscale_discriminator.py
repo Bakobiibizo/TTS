@@ -31,8 +31,8 @@ class MelganMultiscaleDiscriminator(nn.Module):
 
 
     def forward(self, x):
-        scores = list()
-        feats = list()
+        scores = []
+        feats = []
         for disc in self.discriminators:
             score, feat = disc(x)
             scores.append(score)

@@ -177,7 +177,7 @@ def main():
     synthesizer = Synthesizer(model_path, config_path, vocoder_path, vocoder_config_path, args.use_cuda)
 
     use_griffin_lim = vocoder_path is None
-    print(" > Text: {}".format(args.text))
+    print(f" > Text: {args.text}")
 
     # # handle multi-speaker setting
     # if not model_config.use_external_speaker_embedding_file and args.speaker_idx is not None:
@@ -206,11 +206,11 @@ def main():
     wav = synthesizer.tts(args.text)
 
     # save the results
-    file_name = args.text.replace(" ", "_")[0:20]
+    file_name = args.text.replace(" ", "_")[:20]
     file_name = file_name.translate(
         str.maketrans('', '', string.punctuation.replace('_', ''))) + '.wav'
     out_path = os.path.join(args.out_path, file_name)
-    print(" > Saving output to {}".format(out_path))
+    print(f" > Saving output to {out_path}")
     synthesizer.save_wav(wav, out_path)
 
 

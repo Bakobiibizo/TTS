@@ -71,11 +71,7 @@ def visualize(alignment,
               figsize=(8, 24),
               output_fig=False):
 
-    if decoder_output is not None:
-        num_plot = 4
-    else:
-        num_plot = 3
-
+    num_plot = 4 if decoder_output is not None else 3
     label_fontsize = 16
     fig = plt.figure(figsize=figsize)
 

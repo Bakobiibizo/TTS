@@ -60,9 +60,7 @@ class Tacotron2(keras.models.Model):
     def call(self, characters, text_lengths=None, frames=None, training=None):
         if training:
             return self.training(characters, text_lengths, frames)
-        if not training:
-            return self.inference(characters)
-        raise RuntimeError(' [!] Set model training mode True or False')
+        return self.inference(characters)
 
     def training(self, characters, text_lengths, frames):
         B, T = shape_list(characters)

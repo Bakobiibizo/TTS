@@ -82,9 +82,11 @@ def download_and_extract(directory, subset, urls):
             zip_filepath = os.path.join(directory, url.split("/")[-1])
             if os.path.exists(zip_filepath):
                 continue
-            logging.info("Downloading %s to %s" % (url, zip_filepath))
-            subprocess.call('wget %s --user %s --password %s -O %s' %
-                            (url, USER["user"], USER["password"], zip_filepath), shell=True)
+            logging.info(f"Downloading {url} to {zip_filepath}")
+            subprocess.call(
+                f'wget {url} --user {USER["user"]} --password {USER["password"]} -O {zip_filepath}',
+                shell=True,
+            )
 
             statinfo = os.stat(zip_filepath)
             logging.info(
@@ -94,20 +96,19 @@ def download_and_extract(directory, subset, urls):
         # concatenate all parts into zip files
         if ".zip" not in zip_filepath:
             zip_filepath = "_".join(zip_filepath.split("_")[:-1])
-            subprocess.call('cat %s* > %s.zip' %
-                            (zip_filepath, zip_filepath), shell=True)
+            subprocess.call(f'cat {zip_filepath}* > {zip_filepath}.zip', shell=True)
             zip_filepath += ".zip"
         extract_path = zip_filepath.strip(".zip")
 
         # check zip file md5sum
         md5 = hashlib.md5(open(zip_filepath, 'rb').read()).hexdigest()
         if md5 != MD5SUM[subset]:
-            raise ValueError("md5sum of %s mismatch" % zip_filepath)
+            raise ValueError(f"md5sum of {zip_filepath} mismatch")
 
         with zipfile.ZipFile(zip_filepath, "r") as zfile:
             zfile.extractall(directory)
             extract_path_ori = os.path.join(directory, zfile.infolist()[0].filename)
-            subprocess.call('mv %s %s' % (extract_path_ori, extract_path), shell=True)
+            subprocess.call(f'mv {extract_path_ori} {extract_path}', shell=True)
     finally:
         # gfile.Remove(zip_filepath)
         pass
@@ -158,7 +159,7 @@ def convert_audio_and_make_label(input_dir, subset,
         output_file: the name of the newly generated csv file. e.g. vox1_dev_wav.csv
     """
 
-    logging.info("Preprocessing audio and label for subset %s" % subset)
+    logging.info(f"Preprocessing audio and label for subset {subset}")
     source_dir = os.path.join(input_dir, subset)
 
     files = []
@@ -196,7 +197,7 @@ def convert_audio_and_make_label(input_dir, subset,
     df = pandas.DataFrame(
         data=files, columns=["wav_filename", "wav_length_ms", "speaker_id", "speaker_name"])
     df.to_csv(csv_file_path, index=False, sep="\t")
-    logging.info("Successfully generated csv file {}".format(csv_file_path))
+    logging.info(f"Successfully generated csv file {csv_file_path}")
 
 
 def processor(directory, subset, force_process):

@@ -41,29 +41,28 @@ use_cuda, num_gpus = setup_torch_training_env(True, True)
 
 def setup_loader(ap, is_val=False, verbose=False):
     if is_val and not c.run_eval:
-        loader = None
-    else:
-        dataset = WaveRNNDataset(ap=ap,
-                                 items=eval_data if is_val else train_data,
-                                 seq_len=c.seq_len,
-                                 hop_len=ap.hop_length,
-                                 pad=c.padding,
-                                 mode=c.mode,
-                                 mulaw=c.mulaw,
-                                 is_training=not is_val,
-                                 verbose=verbose,
-                                 )
+        return None
+    dataset = WaveRNNDataset(ap=ap,
+                             items=eval_data if is_val else train_data,
+                             seq_len=c.seq_len,
+                             hop_len=ap.hop_length,
+                             pad=c.padding,
+                             mode=c.mode,
+                             mulaw=c.mulaw,
+                             is_training=not is_val,
+                             verbose=verbose,
+                             )
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-        loader = DataLoader(dataset,
-                            shuffle=True,
-                            collate_fn=dataset.collate,
-                            batch_size=c.batch_size,
-                            num_workers=c.num_val_loader_workers
-                            if is_val
-                            else c.num_loader_workers,
-                            pin_memory=True,
-                            )
-    return loader
+    return DataLoader(
+        dataset,
+        shuffle=True,
+        collate_fn=dataset.collate,
+        batch_size=c.batch_size,
+        num_workers=c.num_val_loader_workers
+        if is_val
+        else c.num_loader_workers,
+        pin_memory=True,
+    )
 
 
 def format_data(data):
@@ -148,11 +147,8 @@ def train(model, optimizer, criterion, scheduler, scaler, ap, global_step, epoch
         step_time = time.time() - start_time
         epoch_time += step_time
 
-        update_train_values = dict()
-        loss_dict = dict()
-        loss_dict["model_loss"] = loss.item()
-        for key, value in loss_dict.items():
-            update_train_values["avg_" + key] = value
+        loss_dict = {"model_loss": loss.item()}
+        update_train_values = {f"avg_{key}": value for key, value in loss_dict.items()}
         update_train_values["avg_loader_time"] = loader_time
         update_train_values["avg_step_time"] = step_time
         keep_avg.update_values(update_train_values)
@@ -261,16 +257,11 @@ def evaluate(model, criterion, ap, global_step, epoch):
             # Compute avg loss
             # if num_gpus > 1:
             #     loss = reduce_tensor(loss.data, num_gpus)
-            loss_dict = dict()
-            loss_dict["model_loss"] = loss.item()
-
+            loss_dict = {"model_loss": loss.item()}
             step_time = time.time() - start_time
             epoch_time += step_time
 
-            # update avg stats
-            update_eval_values = dict()
-            for key, value in loss_dict.items():
-                update_eval_values["avg_" + key] = value
+            update_eval_values = {f"avg_{key}": value for key, value in loss_dict.items()}
             update_eval_values["avg_loader_time"] = loader_time
             update_eval_values["avg_step_time"] = step_time
             keep_avg.update_values(update_eval_values)
@@ -411,7 +402,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     #     model = apply_gradient_allreduce(model)
 
     num_parameters = count_parameters(model_wavernn)
-    print(" > Model has {} parameters".format(num_parameters), flush=True)
+    print(f" > Model has {num_parameters} parameters", flush=True)
 
     if "best_loss" not in locals():
         best_loss = float("inf")
@@ -485,9 +476,7 @@ if __name__ == "__main__":
     if args.continue_path != "":
         args.output_path = args.continue_path
         args.config_path = os.path.join(args.continue_path, "config.json")
-        list_of_files = glob.glob(
-            args.continue_path + "/*.pth.tar"
-        )  # * means all if need specific format then *.csv
+        list_of_files = glob.glob(f"{args.continue_path}/*.pth.tar")
         latest_model_file = max(list_of_files, key=os.path.getctime)
         args.restore_path = latest_model_file
         print(f" > Training continues for {args.restore_path}")

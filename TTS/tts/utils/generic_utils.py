@@ -45,8 +45,8 @@ def to_camel(text):
 
 
 def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
-    print(" > Using model: {}".format(c.model))
-    MyModel = importlib.import_module('TTS.tts.models.' + c.model.lower())
+    print(f" > Using model: {c.model}")
+    MyModel = importlib.import_module(f'TTS.tts.models.{c.model.lower()}')
     MyModel = getattr(MyModel, to_camel(c.model))
     if c.model.lower() in "tacotron":
         model = MyModel(num_chars=num_chars + getattr(c, "add_blank", False),
@@ -135,7 +135,7 @@ def setup_model(num_chars, num_speakers, c, speaker_embedding_dim=None):
     return model
 
 def is_tacotron(c):
-    return False if c['model'] in ['speedy_speech', 'glow_tts'] else True
+    return c['model'] not in ['speedy_speech', 'glow_tts']
 
 def check_config_tts(c):
     check_argument('model', c, enum_list=['tacotron', 'tacotron2', 'glow_tts', 'speedy_speech'], restricted=True, val_type=str)

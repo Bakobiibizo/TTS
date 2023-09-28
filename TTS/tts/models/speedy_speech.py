@@ -139,10 +139,7 @@ class SpeedySpeech(nn.Module):
         o_en = self.encoder(x_emb, x_mask)
 
         # speaker conditioning for duration predictor
-        if g is not None:
-            o_en_dp = self._concat_speaker_embedding(o_en, g)
-        else:
-            o_en_dp = o_en
+        o_en_dp = self._concat_speaker_embedding(o_en, g) if g is not None else o_en
         return o_en, o_en_dp, x_mask, g
 
     def _forward_decoder(self, o_en, o_en_dp, dr, x_mask, y_lengths, g):

@@ -42,8 +42,7 @@ class MyDataset(Dataset):
             print(f" | > Num speakers: {len(self.speakers)}")
 
     def load_wav(self, filename):
-        audio = self.ap.load_wav(filename, sr=self.ap.sample_rate)
-        return audio
+        return self.ap.load_wav(filename, sr=self.ap.sample_rate)
 
     def load_data(self, idx):
         text, wav_file, speaker_name = self.items[idx]
@@ -54,19 +53,18 @@ class MyDataset(Dataset):
         assert text.size > 0, self.items[idx][1]
         assert wav.size > 0, self.items[idx][1]
 
-        sample = {
+        return {
             "mel": mel,
             "item_idx": self.items[idx][1],
             "speaker_name": speaker_name,
         }
-        return sample
 
     def __parse_items(self):
         self.speaker_to_utters = {}
         for i in self.items:
             path_ = i[1]
             speaker_ = i[2]
-            if speaker_ in self.speaker_to_utters.keys():
+            if speaker_ in self.speaker_to_utters:
                 self.speaker_to_utters[speaker_].append(path_)
             else:
                 self.speaker_to_utters[speaker_] = [path_, ]
@@ -75,7 +73,7 @@ class MyDataset(Dataset):
             self.speaker_to_utters = {k: v for (k, v) in self.speaker_to_utters.items() if
                                       len(v) >= self.num_utter_per_speaker}
 
-        self.speakers = [k for (k, v) in self.speaker_to_utters.items()]
+        self.speakers = list(self.speaker_to_utters)
 
     # def __parse_items(self):
     #     """

@@ -41,45 +41,45 @@ use_cuda, num_gpus = setup_torch_training_env(True, False)
 
 def setup_loader(ap, r, is_val=False, verbose=False, dataset=None):
     if is_val and not c.run_eval:
-        loader = None
-    else:
-        if dataset is None:
-            dataset = MyDataset(
-                r,
-                c.text_cleaner,
-                compute_linear_spec=c.model.lower() == 'tacotron',
-                meta_data=meta_data_eval if is_val else meta_data_train,
-                ap=ap,
-                tp=c.characters if 'characters' in c.keys() else None,
-                add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
-                batch_group_size=0 if is_val else c.batch_group_size *
-                c.batch_size,
-                min_seq_len=c.min_seq_len,
-                max_seq_len=c.max_seq_len,
-                phoneme_cache_path=c.phoneme_cache_path,
-                use_phonemes=c.use_phonemes,
-                phoneme_language=c.phoneme_language,
-                enable_eos_bos=c.enable_eos_bos_chars,
-                verbose=verbose,
-                speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
+        return None
+    if dataset is None:
+        dataset = MyDataset(
+            r,
+            c.text_cleaner,
+            compute_linear_spec=c.model.lower() == 'tacotron',
+            meta_data=meta_data_eval if is_val else meta_data_train,
+            ap=ap,
+            tp=c.characters if 'characters' in c.keys() else None,
+            add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
+            batch_group_size=0 if is_val else c.batch_group_size *
+            c.batch_size,
+            min_seq_len=c.min_seq_len,
+            max_seq_len=c.max_seq_len,
+            phoneme_cache_path=c.phoneme_cache_path,
+            use_phonemes=c.use_phonemes,
+            phoneme_language=c.phoneme_language,
+            enable_eos_bos=c.enable_eos_bos_chars,
+            verbose=verbose,
+            speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
 
-            if c.use_phonemes and c.compute_input_seq_cache:
-                # precompute phonemes to have a better estimate of sequence lengths.
-                dataset.compute_input_seq(c.num_loader_workers)
-            dataset.sort_items()
+        if c.use_phonemes and c.compute_input_seq_cache:
+            # precompute phonemes to have a better estimate of sequence lengths.
+            dataset.compute_input_seq(c.num_loader_workers)
+        dataset.sort_items()
 
-        sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-        loader = DataLoader(
-            dataset,
-            batch_size=c.eval_batch_size if is_val else c.batch_size,
-            shuffle=False,
-            collate_fn=dataset.collate_fn,
-            drop_last=False,
-            sampler=sampler,
-            num_workers=c.num_val_loader_workers
-            if is_val else c.num_loader_workers,
-            pin_memory=False)
-    return loader
+    sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+    return DataLoader(
+        dataset,
+        batch_size=c.eval_batch_size if is_val else c.batch_size,
+        shuffle=False,
+        collate_fn=dataset.collate_fn,
+        drop_last=False,
+        sampler=sampler,
+        num_workers=c.num_val_loader_workers
+        if is_val
+        else c.num_loader_workers,
+        pin_memory=False,
+    )
 
 def format_data(data):
     # setup input data
@@ -237,19 +237,13 @@ def train(data_loader, model, criterion, optimizer, optimizer_st, scheduler,
             loss_dict['loss'] = reduce_tensor(loss_dict['loss'] .data, num_gpus)
             loss_dict['stopnet_loss'] = reduce_tensor(loss_dict['stopnet_loss'].data, num_gpus) if c.stopnet else loss_dict['stopnet_loss']
 
-        # detach loss values
-        loss_dict_new = dict()
-        for key, value in loss_dict.items():
-            if isinstance(value, (int, float)):
-                loss_dict_new[key] = value
-            else:
-                loss_dict_new[key] = value.item()
+        loss_dict_new = {
+            key: value if isinstance(value, (int, float)) else value.item()
+            for key, value in loss_dict.items()
+        }
         loss_dict = loss_dict_new
 
-        # update avg stats
-        update_train_values = dict()
-        for key, value in loss_dict.items():
-            update_train_values['avg_' + key] = value
+        update_train_values = {f'avg_{key}': value for key, value in loss_dict.items()}
         update_train_values['avg_loader_time'] = loader_time
         update_train_values['avg_step_time'] = step_time
         keep_avg.update_values(update_train_values)

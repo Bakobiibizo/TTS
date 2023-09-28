@@ -28,9 +28,10 @@ class ConsoleLogger():
         return now.strftime("%Y-%m-%d %H:%M:%S")
 
     def print_epoch_start(self, epoch, max_epoch):
-        print("\n{}{} > EPOCH: {}/{}{}".format(tcolors.UNDERLINE, tcolors.BOLD,
-                                               epoch, max_epoch, tcolors.ENDC),
-              flush=True)
+        print(
+            f"\n{tcolors.UNDERLINE}{tcolors.BOLD} > EPOCH: {epoch}/{max_epoch}{tcolors.ENDC}",
+            flush=True,
+        )
 
     def print_train_start(self):
         print(f"\n{tcolors.BOLD} > TRAINING ({self.get_time()}) {tcolors.ENDC}")
@@ -39,8 +40,7 @@ class ConsoleLogger():
                          loss_dict, avg_loss_dict):
         indent = "     | > "
         print()
-        log_text = "{}   --> STEP: {}/{} -- GLOBAL_STEP: {}{}\n".format(
-            tcolors.BOLD, step, batch_steps, global_step, tcolors.ENDC)
+        log_text = f"{tcolors.BOLD}   --> STEP: {step}/{batch_steps} -- GLOBAL_STEP: {global_step}{tcolors.ENDC}\n"
         for key, value in loss_dict.items():
             # print the avg value if given
             if f'avg_{key}' in avg_loss_dict.keys():
@@ -82,8 +82,7 @@ class ConsoleLogger():
 
     def print_epoch_end(self, epoch, avg_loss_dict):
         indent = "     | > "
-        log_text = "  {}--> EVAL PERFORMANCE{}\n".format(
-            tcolors.BOLD, tcolors.ENDC)
+        log_text = f"  {tcolors.BOLD}--> EVAL PERFORMANCE{tcolors.ENDC}\n"
         for key, value in avg_loss_dict.items():
             # print the avg value if given
             color = ''

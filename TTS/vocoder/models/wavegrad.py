@@ -62,11 +62,8 @@ class Wavegrad(nn.Module):
             self.apply_weight_norm()
 
     def forward(self, x, spectrogram, noise_scale):
-        shift_and_scale = []
-
         x = self.y_conv(x)
-        shift_and_scale.append(self.film[0](x, noise_scale))
-
+        shift_and_scale = [self.film[0](x, noise_scale)]
         for film, layer in zip(self.film[1:], self.dblocks):
             x = layer(x)
             shift_and_scale.append(film(x, noise_scale))
@@ -132,14 +129,14 @@ class Wavegrad(nn.Module):
         self.sigma = ((1.0 - self.alpha_hat[:-1]) / (1.0 - self.alpha_hat[1:]) * self.beta[1:])**0.5
 
     def remove_weight_norm(self):
-        for _, layer in enumerate(self.dblocks):
+        for layer in self.dblocks:
             if len(layer.state_dict()) != 0:
                 try:
                     nn.utils.remove_weight_norm(layer)
                 except ValueError:
                     layer.remove_weight_norm()
 
-        for _, layer in enumerate(self.film):
+        for layer in self.film:
             if len(layer.state_dict()) != 0:
                 try:
                     nn.utils.remove_weight_norm(layer)
@@ -147,7 +144,7 @@ class Wavegrad(nn.Module):
                     layer.remove_weight_norm()
 
 
-        for _, layer in enumerate(self.ublocks):
+        for layer in self.ublocks:
             if len(layer.state_dict()) != 0:
                 try:
                     nn.utils.remove_weight_norm(layer)
@@ -159,16 +156,16 @@ class Wavegrad(nn.Module):
         nn.utils.remove_weight_norm(self.y_conv)
 
     def apply_weight_norm(self):
-        for _, layer in enumerate(self.dblocks):
+        for layer in self.dblocks:
             if len(layer.state_dict()) != 0:
                 layer.apply_weight_norm()
 
-        for _, layer in enumerate(self.film):
+        for layer in self.film:
             if len(layer.state_dict()) != 0:
                 layer.apply_weight_norm()
 
 
-        for _, layer in enumerate(self.ublocks):
+        for layer in self.ublocks:
             if len(layer.state_dict()) != 0:
                 layer.apply_weight_norm()
 
@@ -188,9 +185,9 @@ class Wavegrad(nn.Module):
             betas = np.linspace(config['test_noise_schedule']['min_val'],
                                 config['test_noise_schedule']['max_val'],
                                 config['test_noise_schedule']['num_steps'])
-            self.compute_noise_level(betas)
         else:
             betas = np.linspace(config['train_noise_schedule']['min_val'],
                                 config['train_noise_schedule']['max_val'],
                                 config['train_noise_schedule']['num_steps'])
-            self.compute_noise_level(betas)
+
+        self.compute_noise_level(betas)

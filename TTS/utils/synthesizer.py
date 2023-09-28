@@ -84,11 +84,7 @@ class Synthesizer(object):
         if 'characters' in self.tts_config.keys():
             symbols, phonemes = make_symbols(**self.tts_config.characters)
 
-        if self.use_phonemes:
-            self.input_size = len(phonemes)
-        else:
-            self.input_size = len(symbols)
-
+        self.input_size = len(phonemes) if self.use_phonemes else len(symbols)
         self.tts_model = setup_model(self.input_size, num_speakers=self.num_speakers, c=self.tts_config)
         self.tts_model.load_checkpoint(tts_config, tts_checkpoint, eval=True)
         if use_cuda:

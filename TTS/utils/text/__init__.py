@@ -11,10 +11,10 @@ from TTS.tts.utils.text.symbols import make_symbols, symbols, phonemes, _phoneme
 # pylint: disable=unnecessary-comprehension
 # Mappings from symbol to numeric ID and vice versa:
 _symbol_to_id = {s: i for i, s in enumerate(symbols)}
-_id_to_symbol = {i: s for i, s in enumerate(symbols)}
+_id_to_symbol = dict(enumerate(symbols))
 
 _phonemes_to_id = {s: i for i, s in enumerate(phonemes)}
-_id_to_phonemes = {i: s for i, s in enumerate(phonemes)}
+_id_to_phonemes = dict(enumerate(phonemes))
 
 _symbols = symbols
 _phonemes = phonemes
@@ -22,7 +22,7 @@ _phonemes = phonemes
 _CURLY_RE = re.compile(r'(.*?)\{(.+?)\}(.*)')
 
 # Regular expression matching punctuations, ignoring empty space
-PHONEME_PUNCTUATION_PATTERN = r'['+_phoneme_punctuations+']+'
+PHONEME_PUNCTUATION_PATTERN = f'[{_phoneme_punctuations}]+'
 
 
 def text2phone(text, language):
@@ -41,11 +41,11 @@ def text2phone(text, language):
             # if text ends with a punctuation.
             if text[-1] == punctuations[-1]:
                 for punct in punctuations[:-1]:
-                    ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+                    ph = ph.replace('| |\n', f'|{punct}| |', 1)
                     ph = ph + punctuations[-1]
             else:
                 for punct in punctuations:
-                    ph = ph.replace('| |\n', '|'+punct+'| |', 1)
+                    ph = ph.replace('| |\n', f'|{punct}| |', 1)
     elif version.parse(phonemizer.__version__) >= version.parse('2.1'):
         ph = phonemize(text, separator=seperator, strip=False, njobs=1, backend='espeak', language=language, preserve_punctuation=True, language_switch='remove-flags')
         # this is a simple fix for phonemizer.
@@ -86,7 +86,7 @@ def phoneme_to_sequence(text, cleaner_names, language, enable_eos_bos=False, tp=
     clean_text = _clean_text(text, cleaner_names)
     to_phonemes = text2phone(clean_text, language)
     if to_phonemes is None:
-        print("!! After phoneme conversion the result is None. -- {} ".format(clean_text))
+        print(f"!! After phoneme conversion the result is None. -- {clean_text} ")
     # iterate by skipping empty strings - NOTE: might be useful to keep it to have a better intonation.
     for phoneme in filter(None, to_phonemes.split('|')):
         sequence += _phoneme_to_sequence(phoneme)
@@ -107,7 +107,7 @@ def sequence_to_phoneme(sequence, tp=None, add_blank=False):
     result = ''
     if tp:
         _, _phonemes = make_symbols(**tp)
-        _id_to_phonemes = {i: s for i, s in enumerate(_phonemes)}
+        _id_to_phonemes = dict(enumerate(_phonemes))
 
     for symbol_id in sequence:
         if symbol_id in _id_to_phonemes:
@@ -161,7 +161,7 @@ def sequence_to_text(sequence, tp=None, add_blank=False):
 
     if tp:
         _symbols, _ = make_symbols(**tp)
-        _id_to_symbol = {i: s for i, s in enumerate(_symbols)}
+        _id_to_symbol = dict(enumerate(_symbols))
 
     result = ''
     for symbol_id in sequence:
@@ -176,10 +176,10 @@ def sequence_to_text(sequence, tp=None, add_blank=False):
 
 def _clean_text(text, cleaner_names):
     for name in cleaner_names:
-        cleaner = getattr(cleaners, name)
-        if not cleaner:
-            raise Exception('Unknown cleaner: %s' % name)
-        text = cleaner(text)
+        if cleaner := getattr(cleaners, name):
+            text = cleaner(text)
+        else:
+            raise Exception(f'Unknown cleaner: {name}')
     return text
 
 
@@ -192,7 +192,7 @@ def _phoneme_to_sequence(phons):
 
 
 def _arpabet_to_sequence(text):
-    return _symbols_to_sequence(['@' + s for s in text.split()])
+    return _symbols_to_sequence([f'@{s}' for s in text.split()])
 
 
 def _should_keep_symbol(s):

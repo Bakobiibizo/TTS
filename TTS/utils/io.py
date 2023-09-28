@@ -27,8 +27,7 @@ def read_json_with_comments(json_path):
     # handle comments
     input_str = re.sub(r'\\\n', '', input_str)
     input_str = re.sub(r'//.*\n', '\n', input_str)
-    data = json.loads(input_str)
-    return data
+    return json.loads(input_str)
 
 def load_config(config_path: str) -> AttrDict:
     """Load config files and discard comments
@@ -65,13 +64,12 @@ def copy_model_files(c, config_file, out_path, new_fields):
     # add extra information fields
     for key, value in new_fields.items():
         if isinstance(value, str):
-            new_line = '"{}":"{}",\n'.format(key, value)
+            new_line = f'"{key}":"{value}",\n'
         else:
-            new_line = '"{}":{},\n'.format(key, value)
+            new_line = f'"{key}":{value},\n'
         config_lines.insert(1, new_line)
-    config_out_file = open(copy_config_path, "w")
-    config_out_file.writelines(config_lines)
-    config_out_file.close()
+    with open(copy_config_path, "w") as config_out_file:
+        config_out_file.writelines(config_lines)
     # copy model stats file if available
     if c.audio['stats_path'] is not None:
         copy_stats_path = os.path.join(out_path, 'scale_stats.npy')

@@ -55,10 +55,10 @@ class build_py(setuptools.command.build_py.build_py):  # pylint: disable=too-man
 
     @staticmethod
     def create_version_file():
-        print('-- Building version ' + version)
+        print(f'-- Building version {version}')
         version_path = os.path.join(cwd, 'version.py')
         with open(version_path, 'w') as f:
-            f.write("__version__ = '{}'\n".format(version))
+            f.write(f"__version__ = '{version}'\n")
 
 
 class develop(setuptools.command.develop.develop):

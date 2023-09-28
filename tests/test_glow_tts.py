@@ -100,18 +100,14 @@ class GlowTTSTrainTest(unittest.TestCase):
             mean_only=False).to(device)
 
         model.train()
-        print(" > Num parameters for GlowTTS model:%s" %
-              (count_parameters(model)))
+        print(f" > Num parameters for GlowTTS model:{count_parameters(model)}")
 
         # pass the state to ref model
         model_ref.load_state_dict(copy.deepcopy(model.state_dict()))
 
-        count = 0
         for param, param_ref in zip(model.parameters(),
                                     model_ref.parameters()):
             assert (param - param_ref).sum() == 0, param
-            count += 1
-
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
         for _ in range(5):
             z, logdet, y_mean, y_log_scale, alignments, o_dur_log, o_total_dur = model.forward(
@@ -123,11 +119,8 @@ class GlowTTSTrainTest(unittest.TestCase):
             loss.backward()
             optimizer.step()
 
-        # check parameter changes
-        count = 0
-        for param, param_ref in zip(model.parameters(),
-                                    model_ref.parameters()):
-            assert (param != param_ref).any(
-            ), "param {} with shape {} not updated!! \n{}\n{}".format(
-                count, param.shape, param, param_ref)
-            count += 1
+        for count, (param, param_ref) in enumerate(zip(model.parameters(),
+                                    model_ref.parameters())):
+            assert (
+                param != param_ref
+            ).any(), f"param {count} with shape {param.shape} not updated!! \n{param}\n{param_ref}"

@@ -78,7 +78,7 @@ def tweb(root_path, meta_file):
     with open(txt_file, 'r') as ttf:
         for line in ttf:
             cols = line.split('\t')
-            wav_file = os.path.join(root_path, cols[0] + '.wav')
+            wav_file = os.path.join(root_path, f'{cols[0]}.wav')
             text = cols[1]
             items.append([text, wav_file, speaker_name])
     return items
@@ -120,7 +120,7 @@ def mailabs(root_path, meta_files=None):
     speaker_regex = re.compile(
         "by_book/(male|female)/(?P<speaker_name>[^/]+)/")
     if meta_files is None:
-        csv_files = glob(root_path + "/**/metadata.csv", recursive=True)
+        csv_files = glob(f"{root_path}/**/metadata.csv", recursive=True)
     else:
         csv_files = meta_files
     # meta_files = [f.strip() for f in meta_files.split(",")]
@@ -133,22 +133,24 @@ def mailabs(root_path, meta_files=None):
         if speaker_name_match is None:
             continue
         speaker_name = speaker_name_match.group("speaker_name")
-        print(" | > {}".format(csv_file))
+        print(f" | > {csv_file}")
         with open(txt_file, 'r') as ttf:
             for line in ttf:
                 cols = line.split('|')
                 if meta_files is None:
-                    wav_file = os.path.join(folder, 'wavs', cols[0] + '.wav')
+                    wav_file = os.path.join(folder, 'wavs', f'{cols[0]}.wav')
                 else:
-                    wav_file = os.path.join(root_path,
-                                            folder.replace("metadata.csv", ""),
-                                            'wavs', cols[0] + '.wav')
+                    wav_file = os.path.join(
+                        root_path,
+                        folder.replace("metadata.csv", ""),
+                        'wavs',
+                        f'{cols[0]}.wav',
+                    )
                 if os.path.isfile(wav_file):
                     text = cols[1].strip()
                     items.append([text, wav_file, speaker_name])
                 else:
-                    raise RuntimeError("> File %s does not exist!" %
-                                       (wav_file))
+                    raise RuntimeError(f"> File {wav_file} does not exist!")
     return items
 
 
@@ -160,7 +162,7 @@ def ljspeech(root_path, meta_file):
     with open(txt_file, 'r') as ttf:
         for line in ttf:
             cols = line.split('|')
-            wav_file = os.path.join(root_path, 'wavs', cols[0] + '.wav')
+            wav_file = os.path.join(root_path, 'wavs', f'{cols[0]}.wav')
             text = cols[1]
             items.append([text, wav_file, speaker_name])
     return items
@@ -175,7 +177,7 @@ def nancy(root_path, meta_file):
         for line in ttf:
             utt_id = line.split()[1]
             text = line[line.find('"') + 1:line.rfind('"') - 1]
-            wav_file = os.path.join(root_path, "wavn", utt_id + ".wav")
+            wav_file = os.path.join(root_path, "wavn", f"{utt_id}.wav")
             items.append([text, wav_file, speaker_name])
     return items
 
@@ -192,7 +194,7 @@ def common_voice(root_path, meta_file):
             text = cols[2]
             speaker_name = cols[0]
             wav_file = os.path.join(root_path, "clips", cols[1].replace(".mp3", ".wav"))
-            items.append([text, wav_file, 'MCV_' + speaker_name])
+            items.append([text, wav_file, f'MCV_{speaker_name}'])
     return items
 
 
@@ -209,9 +211,9 @@ def libri_tts(root_path, meta_files=None):
         with open(meta_file, 'r') as ttf:
             for line in ttf:
                 cols = line.split('\t')
-                wav_file = os.path.join(_root_path, cols[0] + '.wav')
+                wav_file = os.path.join(_root_path, f'{cols[0]}.wav')
                 text = cols[1]
-                items.append([text, wav_file, 'LTTS_' + speaker_name])
+                items.append([text, wav_file, f'LTTS_{speaker_name}'])
     for item in items:
         assert os.path.exists(
             item[1]), f" [!] wav files don't exist - {item[1]}"
@@ -226,8 +228,7 @@ def custom_turkish(root_path, meta_file):
     with open(txt_file, 'r', encoding='utf-8') as ttf:
         for line in ttf:
             cols = line.split('|')
-            wav_file = os.path.join(root_path, 'wavs',
-                                    cols[0].strip() + '.wav')
+            wav_file = os.path.join(root_path, 'wavs', f'{cols[0].strip()}.wav')
             if not os.path.exists(wav_file):
                 skipped_files.append(wav_file)
                 continue
@@ -269,9 +270,8 @@ def vctk(root_path, meta_files=None, wavs_path='wav48'):
                 continue
         with open(meta_file) as file_text:
             text = file_text.readlines()[0]
-        wav_file = os.path.join(root_path, wavs_path, speaker_id,
-                                file_id + '.wav')
-        items.append([text, wav_file, 'VCTK_' + speaker_id])
+        wav_file = os.path.join(root_path, wavs_path, speaker_id, f'{file_id}.wav')
+        items.append([text, wav_file, f'VCTK_{speaker_id}'])
 
     return items
 
@@ -287,9 +287,8 @@ def vctk_slim(root_path, meta_files=None, wavs_path='wav48'):
         if isinstance(meta_files, list):  # if is list ignore this speakers ids
             if speaker_id in meta_files:
                 continue
-        wav_file = os.path.join(root_path, wavs_path, speaker_id,
-                                file_id + '.wav')
-        items.append([None, wav_file, 'VCTK_' + speaker_id])
+        wav_file = os.path.join(root_path, wavs_path, speaker_id, f'{file_id}.wav')
+        items.append([None, wav_file, f'VCTK_{speaker_id}'])
 
     return items
 

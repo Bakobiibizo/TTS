@@ -66,8 +66,8 @@ class DecoderTests(unittest.TestCase):
             dummy_input, dummy_memory, mask=None)
 
         assert output.shape[0] == 4
-        assert output.shape[1] == 80, "size not {}".format(output.shape[1])
-        assert output.shape[2] == 2, "size not {}".format(output.shape[2])
+        assert output.shape[1] == 80, f"size not {output.shape[1]}"
+        assert output.shape[2] == 2, f"size not {output.shape[2]}"
         assert stop_tokens.shape[0] == 4
 
 class EncoderTests(unittest.TestCase):
@@ -98,7 +98,7 @@ class L1LossMaskedTests(unittest.TestCase):
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.ones(4) * 8).long()
         output = layer(dummy_input, dummy_target, dummy_length)
-        assert output.item() == 1.0, "1.0 vs {}".format(output.item())
+        assert output.item() == 1.0, f"1.0 vs {output.item()}"
 
         # test if padded values of input makes any difference
         dummy_input = T.ones(4, 8, 128).float()
@@ -107,7 +107,7 @@ class L1LossMaskedTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert output.item() == 1.0, "1.0 vs {}".format(output.item())
+        assert output.item() == 1.0, f"1.0 vs {output.item()}"
 
         dummy_input = T.rand(4, 8, 128).float()
         dummy_target = dummy_input.detach()
@@ -115,7 +115,7 @@ class L1LossMaskedTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert output.item() == 0, "0 vs {}".format(output.item())
+        assert output.item() == 0, f"0 vs {output.item()}"
 
         # seq_len_norm = True
         # test input == target
@@ -131,7 +131,7 @@ class L1LossMaskedTests(unittest.TestCase):
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.ones(4) * 8).long()
         output = layer(dummy_input, dummy_target, dummy_length)
-        assert output.item() == 1.0, "1.0 vs {}".format(output.item())
+        assert output.item() == 1.0, f"1.0 vs {output.item()}"
 
         # test if padded values of input makes any difference
         dummy_input = T.ones(4, 8, 128).float()
@@ -140,7 +140,7 @@ class L1LossMaskedTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert abs(output.item() - 1.0) < 1e-5, "1.0 vs {}".format(output.item())
+        assert abs(output.item() - 1.0) < 1e-5, f"1.0 vs {output.item()}"
 
         dummy_input = T.rand(4, 8, 128).float()
         dummy_target = dummy_input.detach()
@@ -148,7 +148,7 @@ class L1LossMaskedTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert output.item() == 0, "0 vs {}".format(output.item())
+        assert output.item() == 0, f"0 vs {output.item()}"
 
 
 class SSIMLossTests(unittest.TestCase):
@@ -166,7 +166,7 @@ class SSIMLossTests(unittest.TestCase):
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.ones(4) * 8).long()
         output = layer(dummy_input, dummy_target, dummy_length)
-        assert abs(output.item() - 1.0) < 1e-4 , "1.0 vs {}".format(output.item())
+        assert abs(output.item() - 1.0) < 1e-4, f"1.0 vs {output.item()}"
 
         # test if padded values of input makes any difference
         dummy_input = T.ones(4, 8, 128).float()
@@ -175,7 +175,7 @@ class SSIMLossTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert abs(output.item() - 1.0) < 1e-4, "1.0 vs {}".format(output.item())
+        assert abs(output.item() - 1.0) < 1e-4, f"1.0 vs {output.item()}"
 
         dummy_input = T.rand(4, 8, 128).float()
         dummy_target = dummy_input.detach()
@@ -183,7 +183,7 @@ class SSIMLossTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert output.item() == 0, "0 vs {}".format(output.item())
+        assert output.item() == 0, f"0 vs {output.item()}"
 
         # seq_len_norm = True
         # test input == target
@@ -199,7 +199,7 @@ class SSIMLossTests(unittest.TestCase):
         dummy_target = T.zeros(4, 8, 128).float()
         dummy_length = (T.ones(4) * 8).long()
         output = layer(dummy_input, dummy_target, dummy_length)
-        assert output.item() == 1.0, "1.0 vs {}".format(output.item())
+        assert output.item() == 1.0, f"1.0 vs {output.item()}"
 
         # test if padded values of input makes any difference
         dummy_input = T.ones(4, 8, 128).float()
@@ -208,7 +208,7 @@ class SSIMLossTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert abs(output.item() - 1.0) < 1e-5, "1.0 vs {}".format(output.item())
+        assert abs(output.item() - 1.0) < 1e-5, f"1.0 vs {output.item()}"
 
         dummy_input = T.rand(4, 8, 128).float()
         dummy_target = dummy_input.detach()
@@ -216,5 +216,5 @@ class SSIMLossTests(unittest.TestCase):
         mask = (
             (sequence_mask(dummy_length).float() - 1.0) * 100.0).unsqueeze(2)
         output = layer(dummy_input + mask, dummy_target, dummy_length)
-        assert output.item() == 0, "0 vs {}".format(output.item())
+        assert output.item() == 0, f"0 vs {output.item()}"
 

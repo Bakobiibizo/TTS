@@ -134,8 +134,7 @@ class AttentionEntropyLoss(nn.Module):
         TODO: unit_test
         """
         entropy = torch.distributions.Categorical(probs=align).entropy()
-        loss = (entropy / np.log(align.shape[1])).mean()
-        return loss
+        return (entropy / np.log(align.shape[1])).mean()
 
 
 class BCELossMasked(nn.Module):
@@ -223,8 +222,7 @@ class GuidedAttentionLoss(torch.nn.Module):
         ga_masks = self._make_ga_masks(ilens, olens).to(att_ws.device)
         seq_masks = self._make_masks(ilens, olens).to(att_ws.device)
         losses = ga_masks * att_ws
-        loss = torch.mean(losses.masked_select(seq_masks))
-        return loss
+        return torch.mean(losses.masked_select(seq_masks))
 
     @staticmethod
     def _make_ga_mask(ilen, olen, sigma):
@@ -298,7 +296,6 @@ class TacotronLoss(torch.nn.Module):
                 stopnet_output, stopnet_target, output_lens, decoder_b_output,
                 alignments, alignment_lens, alignments_backwards, input_lens):
 
-        return_dict = {}
         # remove lengths if no masking is applied
         if not self.config.loss_masking:
             output_lens = None
@@ -323,9 +320,7 @@ class TacotronLoss(torch.nn.Module):
                 else:
                     postnet_loss = self.criterion(postnet_output, mel_input)
         loss = self.decoder_alpha * decoder_loss + self.postnet_alpha * postnet_loss
-        return_dict['decoder_loss'] = decoder_loss
-        return_dict['postnet_loss'] = postnet_loss
-
+        return_dict = {'decoder_loss': decoder_loss, 'postnet_loss': postnet_loss}
         # stopnet loss
         stop_loss = self.criterion_st(
             stopnet_output, stopnet_target,
@@ -406,7 +401,6 @@ class GlowTTSLoss(torch.nn.Module):
 
     def forward(self, z, means, scales, log_det, y_lengths, o_dur_log,
                 o_attn_dur, x_lengths):
-        return_dict = {}
         # flow loss - neg log likelihood
         pz = torch.sum(scales) + 0.5 * torch.sum(
             torch.exp(-2 * scales) * (z - means)**2)
@@ -417,10 +411,11 @@ class GlowTTSLoss(torch.nn.Module):
         # duration loss - huber loss
         loss_dur = torch.nn.functional.smooth_l1_loss(
             o_dur_log, o_attn_dur, reduction='sum') / torch.sum(x_lengths)
-        return_dict['loss'] = log_mle + loss_dur
-        return_dict['log_mle'] = log_mle
-        return_dict['loss_dur'] = loss_dur
-
+        return_dict = {
+            'loss': log_mle + loss_dur,
+            'log_mle': log_mle,
+            'loss_dur': loss_dur,
+        }
         # check if any loss is NaN
         for key, loss in return_dict.items():
             if torch.isnan(loss):

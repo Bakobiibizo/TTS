@@ -76,7 +76,7 @@ class AudioProcessor(object):
         if verbose:
             print(" > Setting up Audio Processor...")
             for key, value in members.items():
-                print(" | > {}:{}".format(key, value))
+                print(f" | > {key}:{value}")
         # create spectrogram utils
         self.mel_basis = self._build_mel_basis()
         self.inv_mel_basis = np.linalg.pinv(self._build_mel_basis())
@@ -113,57 +113,53 @@ class AudioProcessor(object):
         """Put values in [0, self.max_norm] or [-self.max_norm, self.max_norm]"""
         #pylint: disable=no-else-return
         S = S.copy()
-        if self.signal_norm:
-            # mean-var scaling
-            if hasattr(self, 'mel_scaler'):
-                if S.shape[0] == self.num_mels:
-                    return self.mel_scaler.transform(S.T).T
-                elif S.shape[0] == self.fft_size / 2:
-                    return self.linear_scaler.transform(S.T).T
-                else:
-                    raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
-            # range normalization
-            S -= self.ref_level_db  # discard certain range of DB assuming it is air noise
-            S_norm = ((S - self.min_level_db) / (-self.min_level_db))
-            if self.symmetric_norm:
-                S_norm = ((2 * self.max_norm) * S_norm) - self.max_norm
-                if self.clip_norm:
-                    S_norm = np.clip(S_norm, -self.max_norm, self.max_norm)  # pylint: disable=invalid-unary-operand-type
-                return S_norm
-            else:
-                S_norm = self.max_norm * S_norm
-                if self.clip_norm:
-                    S_norm = np.clip(S_norm, 0, self.max_norm)
-                return S_norm
-        else:
+        if not self.signal_norm:
             return S
+        # mean-var scaling
+        if hasattr(self, 'mel_scaler'):
+            if S.shape[0] == self.num_mels:
+                return self.mel_scaler.transform(S.T).T
+            elif S.shape[0] == self.fft_size / 2:
+                return self.linear_scaler.transform(S.T).T
+            else:
+                raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
+        # range normalization
+        S -= self.ref_level_db  # discard certain range of DB assuming it is air noise
+        S_norm = ((S - self.min_level_db) / (-self.min_level_db))
+        if self.symmetric_norm:
+            S_norm = ((2 * self.max_norm) * S_norm) - self.max_norm
+            if self.clip_norm:
+                S_norm = np.clip(S_norm, -self.max_norm, self.max_norm)  # pylint: disable=invalid-unary-operand-type
+        else:
+            S_norm = self.max_norm * S_norm
+            if self.clip_norm:
+                S_norm = np.clip(S_norm, 0, self.max_norm)
+        return S_norm
 
     def denormalize(self, S):
         """denormalize values"""
         #pylint: disable=no-else-return
         S_denorm = S.copy()
-        if self.signal_norm:
-            # mean-var scaling
-            if hasattr(self, 'mel_scaler'):
-                if S_denorm.shape[0] == self.num_mels:
-                    return self.mel_scaler.inverse_transform(S_denorm.T).T
-                elif S_denorm.shape[0] == self.fft_size / 2:
-                    return self.linear_scaler.inverse_transform(S_denorm.T).T
-                else:
-                    raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
-            if self.symmetric_norm:
-                if self.clip_norm:
-                    S_denorm = np.clip(S_denorm, -self.max_norm, self.max_norm)  #pylint: disable=invalid-unary-operand-type
-                S_denorm = ((S_denorm + self.max_norm) * -self.min_level_db / (2 * self.max_norm)) + self.min_level_db
-                return S_denorm + self.ref_level_db
-            else:
-                if self.clip_norm:
-                    S_denorm = np.clip(S_denorm, 0, self.max_norm)
-                S_denorm = (S_denorm * -self.min_level_db /
-                            self.max_norm) + self.min_level_db
-                return S_denorm + self.ref_level_db
-        else:
+        if not self.signal_norm:
             return S_denorm
+        # mean-var scaling
+        if hasattr(self, 'mel_scaler'):
+            if S_denorm.shape[0] == self.num_mels:
+                return self.mel_scaler.inverse_transform(S_denorm.T).T
+            elif S_denorm.shape[0] == self.fft_size / 2:
+                return self.linear_scaler.inverse_transform(S_denorm.T).T
+            else:
+                raise RuntimeError(' [!] Mean-Var stats does not match the given feature dimensions.')
+        if self.symmetric_norm:
+            if self.clip_norm:
+                S_denorm = np.clip(S_denorm, -self.max_norm, self.max_norm)  #pylint: disable=invalid-unary-operand-type
+            S_denorm = ((S_denorm + self.max_norm) * -self.min_level_db / (2 * self.max_norm)) + self.min_level_db
+        else:
+            if self.clip_norm:
+                S_denorm = np.clip(S_denorm, 0, self.max_norm)
+            S_denorm = (S_denorm * -self.min_level_db /
+                        self.max_norm) + self.min_level_db
+        return S_denorm + self.ref_level_db
 
     ### Mean-STD scaling ###
     def load_stats(self, stats_path):
@@ -256,8 +252,7 @@ class AudioProcessor(object):
         S = self._db_to_amp(S)
         S = self._linear_to_mel(np.abs(S))
         S = self._amp_to_db(S)
-        mel = self.normalize(S)
-        return mel
+        return self.normalize(S)
 
     ### STFT and ISTFT ###
     def _stft(self, y):
@@ -287,9 +282,7 @@ class AudioProcessor(object):
         '''
         assert pad_sides in (1, 2)
         pad = (x.shape[0] // self.hop_length + 1) * self.hop_length - x.shape[0]
-        if pad_sides == 1:
-            return 0, pad
-        return pad // 2, pad // 2 + pad % 2
+        return (0, pad) if pad_sides == 1 else (pad // 2, pad // 2 + pad % 2)
 
     ### Compute F0 ###
     # def compute_f0(self, x):
@@ -305,12 +298,16 @@ class AudioProcessor(object):
     ### Audio Processing ###
     def find_endpoint(self, wav, threshold_db=-40, min_silence_sec=0.8):
         window_length = int(self.sample_rate * min_silence_sec)
-        hop_length = int(window_length / 4)
+        hop_length = window_length // 4
         threshold = self._db_to_amp(threshold_db)
-        for x in range(hop_length, len(wav) - window_length, hop_length):
-            if np.max(wav[x:x + window_length]) < threshold:
-                return x + hop_length
-        return len(wav)
+        return next(
+            (
+                x + hop_length
+                for x in range(hop_length, len(wav) - window_length, hop_length)
+                if np.max(wav[x : x + window_length]) < threshold
+            ),
+            len(wav),
+        )
 
     def trim_silence(self, wav):
         """ Trim silent parts with a threshold and 0.01 sec margin """
@@ -329,7 +326,7 @@ class AudioProcessor(object):
             x, sr = librosa.load(filename, sr=self.sample_rate)
         elif sr is None:
             x, sr = sf.read(filename)
-            assert self.sample_rate == sr, "%s vs %s"%(self.sample_rate, sr)
+            assert self.sample_rate == sr, f"{self.sample_rate} vs {sr}"
         else:
             x, sr = librosa.load(filename, sr=sr)
         if self.do_trim_silence:
@@ -358,8 +355,7 @@ class AudioProcessor(object):
     def mulaw_decode(wav, qc):
         """Recovers waveform from quantized values."""
         mu = 2 ** qc - 1
-        x = np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
-        return x
+        return np.sign(wav) / mu * ((1 + mu) ** np.abs(wav) - 1)
 
 
     @staticmethod

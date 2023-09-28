@@ -91,17 +91,14 @@ class MSEGLoss(nn.Module):
     """ Mean Squared Generator Loss """
     # pylint: disable=no-self-use
     def forward(self, score_real):
-        loss_fake = F.mse_loss(score_real, score_real.new_ones(score_real.shape))
-        return loss_fake
+        return F.mse_loss(score_real, score_real.new_ones(score_real.shape))
 
 
 class HingeGLoss(nn.Module):
     """ Hinge Discriminator Loss """
     # pylint: disable=no-self-use
     def forward(self, score_real):
-        # TODO: this might be wrong
-        loss_fake = torch.mean(F.relu(1. - score_real))
-        return loss_fake
+        return torch.mean(F.relu(1. - score_real))
 
 
 ##################################
@@ -140,9 +137,10 @@ class MelganFeatureLoss(nn.Module):
 
     # pylint: disable=no-self-use
     def forward(self, fake_feats, real_feats):
-        loss_feats = 0
-        for fake_feat, real_feat in zip(fake_feats, real_feats):
-            loss_feats += self.loss_func(fake_feat, real_feat)
+        loss_feats = sum(
+            self.loss_func(fake_feat, real_feat)
+            for fake_feat, real_feat in zip(fake_feats, real_feats)
+        )
         loss_feats /= len(fake_feats) + len(real_feats)
         return loss_feats
 
@@ -252,7 +250,7 @@ class GeneratorLoss(nn.Module):
             adv_loss += self.mse_gan_loss_weight * mse_fake_loss
 
         # multiscale Hinge adversarial loss
-        if self.use_hinge_gan_loss and not scores_fake is not None:
+        if self.use_hinge_gan_loss and scores_fake is None:
             hinge_fake_loss = _apply_G_adv_loss(scores_fake, self.hinge_loss)
             return_dict['G_hinge_fake_loss'] = hinge_fake_loss
             adv_loss += self.hinge_gan_loss_weight * hinge_fake_loss
