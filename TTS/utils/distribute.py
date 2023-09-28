@@ -81,25 +81,26 @@ def apply_gradient_allreduce(module):
         dist.broadcast(p, 0)
 
     def allreduce_params():
-        if module.needs_reduction:
-            module.needs_reduction = False
-            # bucketing params based on value types
-            buckets = {}
-            for param in module.parameters():
-                if param.requires_grad and param.grad is not None:
-                    tp = type(param.data)
-                    if tp not in buckets:
-                        buckets[tp] = []
-                    buckets[tp].append(param)
-            for tp in buckets:
-                bucket = buckets[tp]
-                grads = [param.grad.data for param in bucket]
-                coalesced = _flatten_dense_tensors(grads)
-                dist.all_reduce(coalesced, op=dist.reduce_op.SUM)
-                coalesced /= dist.get_world_size()
-                for buf, synced in zip(
-                        grads, _unflatten_dense_tensors(coalesced, grads)):
-                    buf.copy_(synced)
+        if not module.needs_reduction:
+            return
+        module.needs_reduction = False
+        # bucketing params based on value types
+        buckets = {}
+        for param in module.parameters():
+            if param.requires_grad and param.grad is not None:
+                tp = type(param.data)
+                if tp not in buckets:
+                    buckets[tp] = []
+                buckets[tp].append(param)
+        for tp in buckets:
+            bucket = buckets[tp]
+            grads = [param.grad.data for param in bucket]
+            coalesced = _flatten_dense_tensors(grads)
+            dist.all_reduce(coalesced, op=dist.reduce_op.SUM)
+            coalesced /= dist.get_world_size()
+            for buf, synced in zip(
+                    grads, _unflatten_dense_tensors(coalesced, grads)):
+                buf.copy_(synced)
 
     for param in list(module.parameters()):
 

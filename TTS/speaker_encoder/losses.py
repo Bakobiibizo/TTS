@@ -27,10 +27,10 @@ class GE2ELoss(nn.Module):
 
         assert self.loss_method in ["softmax", "contrast"]
 
-        if self.loss_method == "softmax":
-            self.embed_loss = self.embed_loss_softmax
         if self.loss_method == "contrast":
             self.embed_loss = self.embed_loss_contrast
+        elif self.loss_method == "softmax":
+            self.embed_loss = self.embed_loss_softmax
 
     # pylint: disable=R0201
     def calc_new_centroids(self, dvecs, centroids, spkr, utt):
@@ -81,9 +81,7 @@ class GE2ELoss(nn.Module):
         N, M, _ = dvecs.shape
         L = []
         for j in range(N):
-            L_row = []
-            for i in range(M):
-                L_row.append(-F.log_softmax(cos_sim_matrix[j, i], 0)[j])
+            L_row = [-F.log_softmax(cos_sim_matrix[j, i], 0)[j] for i in range(M)]
             L_row = torch.stack(L_row)
             L.append(L_row)
         return torch.stack(L)
@@ -156,5 +154,4 @@ class AngleProtoLoss(nn.Module):
         torch.clamp(self.w, 1e-6)
         cos_sim_matrix = cos_sim_matrix * self.w + self.b
         label = torch.from_numpy(np.asarray(range(0, num_speakers))).to(cos_sim_matrix.device)
-        L = self.criterion(cos_sim_matrix, label)
-        return L
+        return self.criterion(cos_sim_matrix, label)

@@ -34,34 +34,30 @@ def get_commit_hash():
     # Not copying .git folder into docker container
     except subprocess.CalledProcessError:
         commit = "0000000"
-    print(' > Git Hash: {}'.format(commit))
+    print(f' > Git Hash: {commit}')
     return commit
 
 
 def create_experiment_folder(root_path, model_name, debug):
     """ Create a folder with the current date and time """
     date_str = datetime.datetime.now().strftime("%B-%d-%Y_%I+%M%p")
-    if debug:
-        commit_hash = 'debug'
-    else:
-        commit_hash = get_commit_hash()
+    commit_hash = 'debug' if debug else get_commit_hash()
     output_folder = os.path.join(
-        root_path, model_name + '-' + date_str + '-' + commit_hash)
+        root_path, f'{model_name}-{date_str}-{commit_hash}'
+    )
     os.makedirs(output_folder, exist_ok=True)
-    print(" > Experiment folder: {}".format(output_folder))
+    print(f" > Experiment folder: {output_folder}")
     return output_folder
 
 
 def remove_experiment_folder(experiment_path):
     """Check folder if there is a checkpoint, otherwise remove the folder"""
 
-    checkpoint_files = glob.glob(experiment_path + "/*.pth.tar")
-    if not checkpoint_files:
-        if os.path.exists(experiment_path):
-            shutil.rmtree(experiment_path, ignore_errors=True)
-            print(" ! Run is removed from {}".format(experiment_path))
-    else:
-        print(" ! Run is kept in {}".format(experiment_path))
+    if checkpoint_files := glob.glob(f"{experiment_path}/*.pth.tar"):
+        print(f" ! Run is kept in {experiment_path}")
+    elif os.path.exists(experiment_path):
+        shutil.rmtree(experiment_path, ignore_errors=True)
+        print(f" ! Run is removed from {experiment_path}")
 
 
 def count_parameters(model):
@@ -89,7 +85,7 @@ def set_init_dict(model_dict, checkpoint_state, c):
     # Partial initialization: if there is a mismatch with new and old layer, it is skipped.
     for k, v in checkpoint_state.items():
         if k not in model_dict:
-            print(" | > Layer missing in the model definition: {}".format(k))
+            print(f" | > Layer missing in the model definition: {k}")
     # 1. filter out unnecessary keys
     pretrained_dict = {
         k: v
@@ -111,8 +107,7 @@ def set_init_dict(model_dict, checkpoint_state, c):
             }
     # 4. overwrite entries in the existing state dict
     model_dict.update(pretrained_dict)
-    print(" | > {} / {} layers are restored.".format(len(pretrained_dict),
-                                                     len(model_dict)))
+    print(f" | > {len(pretrained_dict)} / {len(model_dict)} layers are restored.")
     return model_dict
 
 
@@ -135,16 +130,14 @@ class KeepAverage():
         if name not in self.avg_values:
             # add value if not exist before
             self.add_value(name, init_val=value)
+        elif weighted_avg:
+            self.avg_values[name] = 0.99 * self.avg_values[name] + 0.01 * value
+            self.iters[name] += 1
         else:
-            # else update existing value
-            if weighted_avg:
-                self.avg_values[name] = 0.99 * self.avg_values[name] + 0.01 * value
-                self.iters[name] += 1
-            else:
-                self.avg_values[name] = self.avg_values[name] * \
+            self.avg_values[name] = self.avg_values[name] * \
                     self.iters[name] + value
-                self.iters[name] += 1
-                self.avg_values[name] /= self.iters[name]
+            self.iters[name] += 1
+            self.avg_values[name] /= self.iters[name]
 
     def add_values(self, name_dict):
         for key, value in name_dict.items():
@@ -168,10 +161,7 @@ def check_argument(name, c, enum_list=None, max_val=None, min_val=None, restrict
         if enum_list:
             assert c[name].lower() in enum_list, f' [!] {name} is not a valid value'
         if isinstance(val_type, list):
-            is_valid = False
-            for typ in val_type:
-                if isinstance(c[name], typ):
-                    is_valid = True
+            is_valid = any(isinstance(c[name], typ) for typ in val_type)
             assert is_valid or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'
         elif val_type:
             assert isinstance(c[name], val_type) or c[name] is None, f' [!] {name} has wrong type - {type(c[name])} vs {val_type}'

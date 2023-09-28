@@ -39,45 +39,45 @@ use_cuda, num_gpus = setup_torch_training_env(True, False)
 
 def setup_loader(ap, r, is_val=False, verbose=False):
     if is_val and not c.run_eval:
-        loader = None
-    else:
-        dataset = MyDataset(
-            r,
-            c.text_cleaner,
-            compute_linear_spec=False,
-            meta_data=meta_data_eval if is_val else meta_data_train,
-            ap=ap,
-            tp=c.characters if 'characters' in c.keys() else None,
-            add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
-            batch_group_size=0 if is_val else c.batch_group_size *
-            c.batch_size,
-            min_seq_len=c.min_seq_len,
-            max_seq_len=c.max_seq_len,
-            phoneme_cache_path=c.phoneme_cache_path,
-            use_phonemes=c.use_phonemes,
-            phoneme_language=c.phoneme_language,
-            enable_eos_bos=c.enable_eos_bos_chars,
-            use_noise_augment=c['use_noise_augment'] and not is_val,
-            verbose=verbose,
-            speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
+        return None
+    dataset = MyDataset(
+        r,
+        c.text_cleaner,
+        compute_linear_spec=False,
+        meta_data=meta_data_eval if is_val else meta_data_train,
+        ap=ap,
+        tp=c.characters if 'characters' in c.keys() else None,
+        add_blank=c['add_blank'] if 'add_blank' in c.keys() else False,
+        batch_group_size=0 if is_val else c.batch_group_size *
+        c.batch_size,
+        min_seq_len=c.min_seq_len,
+        max_seq_len=c.max_seq_len,
+        phoneme_cache_path=c.phoneme_cache_path,
+        use_phonemes=c.use_phonemes,
+        phoneme_language=c.phoneme_language,
+        enable_eos_bos=c.enable_eos_bos_chars,
+        use_noise_augment=c['use_noise_augment'] and not is_val,
+        verbose=verbose,
+        speaker_mapping=speaker_mapping if c.use_speaker_embedding and c.use_external_speaker_embedding_file else None)
 
-        if c.use_phonemes and c.compute_input_seq_cache:
-            # precompute phonemes to have a better estimate of sequence lengths.
-            dataset.compute_input_seq(c.num_loader_workers)
-        dataset.sort_items()
+    if c.use_phonemes and c.compute_input_seq_cache:
+        # precompute phonemes to have a better estimate of sequence lengths.
+        dataset.compute_input_seq(c.num_loader_workers)
+    dataset.sort_items()
 
-        sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-        loader = DataLoader(
-            dataset,
-            batch_size=c.eval_batch_size if is_val else c.batch_size,
-            shuffle=False,
-            collate_fn=dataset.collate_fn,
-            drop_last=False,
-            sampler=sampler,
-            num_workers=c.num_val_loader_workers
-            if is_val else c.num_loader_workers,
-            pin_memory=False)
-    return loader
+    sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+    return DataLoader(
+        dataset,
+        batch_size=c.eval_batch_size if is_val else c.batch_size,
+        shuffle=False,
+        collate_fn=dataset.collate_fn,
+        drop_last=False,
+        sampler=sampler,
+        num_workers=c.num_val_loader_workers
+        if is_val
+        else c.num_loader_workers,
+        pin_memory=False,
+    )
 
 
 def format_data(data):
@@ -227,19 +227,13 @@ def train(data_loader, model, criterion, optimizer, scheduler,
             loss_dict['loss_dur'] = reduce_tensor(loss_dict['loss_dur'].data, num_gpus)
             loss_dict['loss'] = reduce_tensor(loss_dict['loss'] .data, num_gpus)
 
-        # detach loss values
-        loss_dict_new = dict()
-        for key, value in loss_dict.items():
-            if isinstance(value, (int, float)):
-                loss_dict_new[key] = value
-            else:
-                loss_dict_new[key] = value.item()
+        loss_dict_new = {
+            key: value if isinstance(value, (int, float)) else value.item()
+            for key, value in loss_dict.items()
+        }
         loss_dict = loss_dict_new
 
-        # update avg stats
-        update_train_values = dict()
-        for key, value in loss_dict.items():
-            update_train_values['avg_' + key] = value
+        update_train_values = {f'avg_{key}': value for key, value in loss_dict.items()}
         update_train_values['avg_loader_time'] = loader_time
         update_train_values['avg_step_time'] = step_time
         keep_avg.update_values(update_train_values)
@@ -356,19 +350,13 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
                 loss_dict['loss_dur'] = reduce_tensor(loss_dict['loss_dur'].data, num_gpus)
                 loss_dict['loss'] = reduce_tensor(loss_dict['loss'] .data, num_gpus)
 
-            # detach loss values
-            loss_dict_new = dict()
-            for key, value in loss_dict.items():
-                if isinstance(value, (int, float)):
-                    loss_dict_new[key] = value
-                else:
-                    loss_dict_new[key] = value.item()
+            loss_dict_new = {
+                key: value if isinstance(value, (int, float)) else value.item()
+                for key, value in loss_dict.items()
+            }
             loss_dict = loss_dict_new
 
-            # update avg stats
-            update_train_values = dict()
-            for key, value in loss_dict.items():
-                update_train_values['avg_' + key] = value
+            update_train_values = {f'avg_{key}': value for key, value in loss_dict.items()}
             keep_avg.update_values(update_train_values)
 
             if c.print_eval:
@@ -451,14 +439,13 @@ def evaluate(data_loader, model, criterion, ap, global_step, epoch):
 
                 file_path = os.path.join(AUDIO_PATH, str(global_step))
                 os.makedirs(file_path, exist_ok=True)
-                file_path = os.path.join(file_path,
-                                         "TestSentence_{}.wav".format(idx))
+                file_path = os.path.join(file_path, f"TestSentence_{idx}.wav")
                 ap.save_wav(wav, file_path)
-                test_audios['{}-audio'.format(idx)] = wav
-                test_figures['{}-prediction'.format(idx)] = plot_spectrogram(
-                    postnet_output, ap)
-                test_figures['{}-alignment'.format(idx)] = plot_alignment(
-                    alignment)
+                test_audios[f'{idx}-audio'] = wav
+                test_figures[f'{idx}-prediction'] = plot_spectrogram(
+                    postnet_output, ap
+                )
+                test_figures[f'{idx}-alignment'] = plot_alignment(alignment)
             except: #pylint: disable=bare-except
                 print(" !! Error creating Test Sentence -", idx)
                 traceback.print_exc()
@@ -540,7 +527,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         scheduler = None
 
     num_params = count_parameters(model)
-    print("\n > Model has {} parameters".format(num_params), flush=True)
+    print(f"\n > Model has {num_params} parameters", flush=True)
 
     if 'best_loss' not in locals():
         best_loss = float('inf')
@@ -604,7 +591,7 @@ if __name__ == '__main__':
     if args.continue_path != '':
         args.output_path = args.continue_path
         args.config_path = os.path.join(args.continue_path, 'config.json')
-        list_of_files = glob.glob(args.continue_path + "/*.pth.tar") # * means all if need specific format then *.csv
+        list_of_files = glob.glob(f"{args.continue_path}/*.pth.tar")
         latest_model_file = max(list_of_files, key=os.path.getctime)
         args.restore_path = latest_model_file
         print(f" > Training continues for {args.restore_path}")

@@ -52,13 +52,12 @@ def plot_results(y_hat, y, ap, global_step, name_prefix):
     plt.tight_layout()
     plt.close()
 
-    figures = {
-        name_prefix + "spectrogram/fake": plot_spectrogram(spec_fake),
-        name_prefix + "spectrogram/real": plot_spectrogram(spec_real),
-        name_prefix + "spectrogram/diff": plot_spectrogram(spec_diff),
-        name_prefix + "speech_comparison": fig_wave,
+    return {
+        f"{name_prefix}spectrogram/fake": plot_spectrogram(spec_fake),
+        f"{name_prefix}spectrogram/real": plot_spectrogram(spec_real),
+        f"{name_prefix}spectrogram/diff": plot_spectrogram(spec_diff),
+        f"{name_prefix}speech_comparison": fig_wave,
     }
-    return figures
 
 
 def to_camel(text):
@@ -70,7 +69,7 @@ def setup_wavernn(c):
     print(" > Model: WaveRNN")
     MyModel = importlib.import_module("TTS.vocoder.models.wavernn")
     MyModel = getattr(MyModel, "WaveRNN")
-    model = MyModel(
+    return MyModel(
         rnn_dims=c.wavernn_model_params['rnn_dims'],
         fc_dims=c.wavernn_model_params['fc_dims'],
         mode=c.mode,
@@ -86,11 +85,10 @@ def setup_wavernn(c):
         hop_length=c.audio["hop_length"],
         sample_rate=c.audio["sample_rate"],
     )
-    return model
 
 
 def setup_generator(c):
-    print(" > Generator Model: {}".format(c.generator_model))
+    print(f" > Generator Model: {c.generator_model}")
     MyModel = importlib.import_module('TTS.vocoder.models.' +
                                       c.generator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.generator_model))
@@ -103,8 +101,6 @@ def setup_generator(c):
             upsample_factors=c.generator_model_params['upsample_factors'],
             res_kernel=3,
             num_res_blocks=c.generator_model_params['num_res_blocks'])
-    if c.generator_model in 'melgan_fb_generator':
-        pass
     if c.generator_model.lower() in 'multiband_melgan_generator':
         model = MyModel(
             in_channels=c.audio['num_mels'],
@@ -153,13 +149,16 @@ def setup_generator(c):
 
 
 def setup_discriminator(c):
-    print(" > Discriminator Model: {}".format(c.discriminator_model))
-    if 'parallel_wavegan' in c.discriminator_model:
-        MyModel = importlib.import_module(
-            'TTS.vocoder.models.parallel_wavegan_discriminator')
-    else:
-        MyModel = importlib.import_module('TTS.vocoder.models.' +
-                                          c.discriminator_model.lower())
+    print(f" > Discriminator Model: {c.discriminator_model}")
+    MyModel = (
+        importlib.import_module(
+            'TTS.vocoder.models.parallel_wavegan_discriminator'
+        )
+        if 'parallel_wavegan' in c.discriminator_model
+        else importlib.import_module(
+            f'TTS.vocoder.models.{c.discriminator_model.lower()}'
+        )
+    )
     MyModel = getattr(MyModel, to_camel(c.discriminator_model.lower()))
     if c.discriminator_model in 'random_window_discriminator':
         model = MyModel(

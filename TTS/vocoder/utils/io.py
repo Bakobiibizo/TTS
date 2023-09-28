@@ -54,9 +54,9 @@ def save_model(model, optimizer, scheduler, model_disc, optimizer_disc,
 def save_checkpoint(model, optimizer, scheduler, model_disc, optimizer_disc,
                     scheduler_disc, current_step, epoch, output_folder,
                     **kwargs):
-    file_name = 'checkpoint_{}.pth.tar'.format(current_step)
+    file_name = f'checkpoint_{current_step}.pth.tar'
     checkpoint_path = os.path.join(output_folder, file_name)
-    print(" > CHECKPOINT : {}".format(checkpoint_path))
+    print(f" > CHECKPOINT : {checkpoint_path}")
     save_model(model, optimizer, scheduler, model_disc, optimizer_disc,
                scheduler_disc, current_step, epoch, checkpoint_path, **kwargs)
 
@@ -67,7 +67,7 @@ def save_best_model(target_loss, best_loss, model, optimizer, scheduler,
     if target_loss < best_loss:
         file_name = 'best_model.pth.tar'
         checkpoint_path = os.path.join(output_folder, file_name)
-        print(" > BEST MODEL : {}".format(checkpoint_path))
+        print(f" > BEST MODEL : {checkpoint_path}")
         save_model(model,
                    optimizer,
                    scheduler,

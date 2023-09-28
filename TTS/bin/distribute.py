@@ -44,18 +44,20 @@ def main():
     # set arguments for train.py
     folder_path = pathlib.Path(__file__).parent.absolute()
     command = [os.path.join(folder_path, args.script)]
-    command.append('--continue_path={}'.format(args.continue_path))
-    command.append('--restore_path={}'.format(args.restore_path))
-    command.append('--config_path={}'.format(args.config_path))
-    command.append('--group_id=group_{}'.format(group_id))
-    command.append('')
-
+    command.extend(
+        (
+            f'--continue_path={args.continue_path}',
+            f'--restore_path={args.restore_path}',
+            f'--config_path={args.config_path}',
+        )
+    )
+    command.extend((f'--group_id=group_{group_id}', ''))
     # run processes
     processes = []
     for i in range(num_gpus):
         my_env = os.environ.copy()
-        my_env["PYTHON_EGG_CACHE"] = "/tmp/tmp{}".format(i)
-        command[-1] = '--rank={}'.format(i)
+        my_env["PYTHON_EGG_CACHE"] = f"/tmp/tmp{i}"
+        command[-1] = f'--rank={i}'
         stdout = None if i == 0 else open(os.devnull, 'w')
         p = subprocess.Popen(['python3'] + command, stdout=stdout, env=my_env)
         processes.append(p)

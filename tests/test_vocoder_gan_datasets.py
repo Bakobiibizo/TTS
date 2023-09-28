@@ -39,7 +39,6 @@ def gan_dataset_case(batch_size, seq_len, hop_len, conv_pad, return_segments, us
                         pin_memory=True,
                         drop_last=True)
 
-    max_iter = 10
     count_iter = 0
 
     # return random segments or return the whole audio
@@ -67,6 +66,7 @@ def gan_dataset_case(batch_size, seq_len, hop_len, conv_pad, return_segments, us
             # if count_iter == max_iter:
             #     break
     else:
+        max_iter = 10
         for item in loader:
             feat, wav = item
             expected_feat_shape = (batch_size, ap.num_mels, (wav.shape[-1] // hop_len) + (conv_pad * 2))

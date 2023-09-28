@@ -16,27 +16,22 @@ def setup_torch_training_env(cudnn_enable, cudnn_benchmark):
 def check_update(model, grad_clip, ignore_stopnet=False, amp_opt_params=None):
     r'''Check model gradient against unexpected jumps and failures'''
     skip_flag = False
-    if ignore_stopnet:
-        if not amp_opt_params:
-            grad_norm = torch.nn.utils.clip_grad_norm_(
-                [param for name, param in model.named_parameters() if 'stopnet' not in name], grad_clip)
-        else:
-            grad_norm = torch.nn.utils.clip_grad_norm_(amp_opt_params, grad_clip)
+    if amp_opt_params:
+        grad_norm = torch.nn.utils.clip_grad_norm_(amp_opt_params, grad_clip)
+    elif ignore_stopnet:
+        grad_norm = torch.nn.utils.clip_grad_norm_(
+            [param for name, param in model.named_parameters() if 'stopnet' not in name], grad_clip)
     else:
-        if not amp_opt_params:
-            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
-        else:
-            grad_norm = torch.nn.utils.clip_grad_norm_(amp_opt_params, grad_clip)
-
+        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), grad_clip)
     # compatibility with different torch versions
-    if isinstance(grad_norm, float):
-        if np.isinf(grad_norm):
-            print(" | > Gradient is INF !!")
-            skip_flag = True
-    else:
-        if torch.isinf(grad_norm):
-            print(" | > Gradient is INF !!")
-            skip_flag = True
+    if (
+        isinstance(grad_norm, float)
+        and np.isinf(grad_norm)
+        or not isinstance(grad_norm, float)
+        and torch.isinf(grad_norm)
+    ):
+        print(" | > Gradient is INF !!")
+        skip_flag = True
     return grad_norm, skip_flag
 
 
@@ -44,9 +39,11 @@ def lr_decay(init_lr, global_step, warmup_steps):
     r'''from https://github.com/r9y9/tacotron_pytorch/blob/master/train.py'''
     warmup_steps = float(warmup_steps)
     step = global_step + 1.
-    lr = init_lr * warmup_steps**0.5 * np.minimum(step * warmup_steps**-1.5,
-                                                  step**-0.5)
-    return lr
+    return (
+        init_lr
+        * warmup_steps**0.5
+        * np.minimum(step * warmup_steps**-1.5, step**-0.5)
+    )
 
 
 def adam_weight_decay(optimizer):
@@ -74,7 +71,9 @@ def set_weight_decay(model, weight_decay, skip_list={"decoder.attention.v", "rnn
         if not param.requires_grad:
             continue
 
-        if len(param.shape) == 1 or any([skip_name in name for skip_name in skip_list]):
+        if len(param.shape) == 1 or any(
+            skip_name in name for skip_name in skip_list
+        ):
             no_decay.append(param)
         else:
             decay.append(param)

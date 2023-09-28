@@ -39,8 +39,7 @@ class WaveRNNDataset(Dataset):
         return len(self.item_list)
 
     def __getitem__(self, index):
-        item = self.load_item(index)
-        return item
+        return self.load_item(index)
 
     def load_item(self, index):
         """
@@ -53,7 +52,7 @@ class WaveRNNDataset(Dataset):
             audio = self.ap.load_wav(wavpath)
             min_audio_len = 2 * self.seq_len + (2 * self.pad * self.hop_len)
             if audio.shape[0] < min_audio_len:
-                print(" [!] Instance is too short! : {}".format(wavpath))
+                print(f" [!] Instance is too short! : {wavpath}")
                 audio = np.pad(audio, [0, min_audio_len - audio.shape[0] + self.hop_len])
             mel = self.ap.melspectrogram(audio)
 
@@ -71,7 +70,7 @@ class WaveRNNDataset(Dataset):
             mel = np.load(feat_path.replace("/quant/", "/mel/"))
 
             if mel.shape[-1] < self.mel_len  + 2 * self.pad:
-                print(" [!] Instance is too short! : {}".format(wavpath))
+                print(f" [!] Instance is too short! : {wavpath}")
                 self.item_list[index] = self.item_list[index + 1]
                 feat_path = self.item_list[index]
                 mel = np.load(feat_path.replace("/quant/", "/mel/"))

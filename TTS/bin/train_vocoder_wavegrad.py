@@ -31,31 +31,30 @@ use_cuda, num_gpus = setup_torch_training_env(True, True)
 
 def setup_loader(ap, is_val=False, verbose=False):
     if is_val and not c.run_eval:
-        loader = None
-    else:
-        dataset = WaveGradDataset(ap=ap,
-                                items=eval_data if is_val else train_data,
-                                seq_len=c.seq_len,
-                                hop_len=ap.hop_length,
-                                pad_short=c.pad_short,
-                                conv_pad=c.conv_pad,
-                                is_training=not is_val,
-                                return_segments=True,
-                                use_noise_augment=False,
-                                use_cache=c.use_cache,
-                                verbose=verbose)
-        sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-        loader = DataLoader(dataset,
-                            batch_size=c.batch_size,
-                            shuffle=num_gpus <= 1,
-                            drop_last=False,
-                            sampler=sampler,
-                            num_workers=c.num_val_loader_workers
-                            if is_val else c.num_loader_workers,
-                            pin_memory=False)
-
-
-    return loader
+        return None
+    dataset = WaveGradDataset(ap=ap,
+                            items=eval_data if is_val else train_data,
+                            seq_len=c.seq_len,
+                            hop_len=ap.hop_length,
+                            pad_short=c.pad_short,
+                            conv_pad=c.conv_pad,
+                            is_training=not is_val,
+                            return_segments=True,
+                            use_noise_augment=False,
+                            use_cache=c.use_cache,
+                            verbose=verbose)
+    sampler = DistributedSampler(dataset) if num_gpus > 1 else None
+    return DataLoader(
+        dataset,
+        batch_size=c.batch_size,
+        shuffle=num_gpus <= 1,
+        drop_last=False,
+        sampler=sampler,
+        num_workers=c.num_val_loader_workers
+        if is_val
+        else c.num_loader_workers,
+        pin_memory=False,
+    )
 
 
 def format_data(data):
@@ -146,14 +145,10 @@ def train(model, criterion, optimizer,
         if scheduler is not None:
             scheduler.step()
 
-        # disconnect loss values
-        loss_dict = dict()
-        for key, value in loss_wavegrad_dict.items():
-            if isinstance(value, int):
-                loss_dict[key] = value
-            else:
-                loss_dict[key] = value.item()
-
+        loss_dict = {
+            key: value if isinstance(value, int) else value.item()
+            for key, value in loss_wavegrad_dict.items()
+        }
         # epoch/step timing
         step_time = time.time() - start_time
         epoch_time += step_time
@@ -161,10 +156,7 @@ def train(model, criterion, optimizer,
         # get current learning rates
         current_lr = list(optimizer.param_groups)[0]['lr']
 
-        # update avg stats
-        update_train_values = dict()
-        for key, value in loss_dict.items():
-            update_train_values['avg_' + key] = value
+        update_train_values = {f'avg_{key}': value for key, value in loss_dict.items()}
         update_train_values['avg_loader_time'] = loader_time
         update_train_values['avg_step_time'] = step_time
         keep_avg.update_values(update_train_values)
@@ -255,20 +247,14 @@ def evaluate(model, criterion, ap, global_step, epoch):
         loss_wavegrad_dict = {'wavegrad_loss':loss}
 
 
-        loss_dict = dict()
-        for key, value in loss_wavegrad_dict.items():
-            if isinstance(value, (int, float)):
-                loss_dict[key] = value
-            else:
-                loss_dict[key] = value.item()
-
+        loss_dict = {
+            key: value if isinstance(value, (int, float)) else value.item()
+            for key, value in loss_wavegrad_dict.items()
+        }
         step_time = time.time() - start_time
         epoch_time += step_time
 
-        # update avg stats
-        update_eval_values = dict()
-        for key, value in loss_dict.items():
-            update_eval_values['avg_' + key] = value
+        update_eval_values = {f'avg_{key}': value for key, value in loss_dict.items()}
         update_eval_values['avg_loader_time'] = loader_time
         update_eval_values['avg_step_time'] = step_time
         keep_avg.update_values(update_eval_values)
@@ -387,7 +373,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         model = DDP_th(model, device_ids=[args.rank])
 
     num_params = count_parameters(model)
-    print(" > WaveGrad has {} parameters".format(num_params), flush=True)
+    print(f" > WaveGrad has {num_params} parameters", flush=True)
 
     if 'best_loss' not in locals():
         best_loss = float('inf')

@@ -75,19 +75,17 @@ class MyDataset(Dataset):
             os.makedirs(phoneme_cache_path, exist_ok=True)
         if self.verbose:
             print("\n > DataLoader initialization")
-            print(" | > Use phonemes: {}".format(self.use_phonemes))
+            print(f" | > Use phonemes: {self.use_phonemes}")
             if use_phonemes:
-                print("   | > phoneme language: {}".format(phoneme_language))
-            print(" | > Number of instances : {}".format(len(self.items)))
+                print(f"   | > phoneme language: {phoneme_language}")
+            print(f" | > Number of instances : {len(self.items)}")
 
     def load_wav(self, filename):
-        audio = self.ap.load_wav(filename)
-        return audio
+        return self.ap.load_wav(filename)
 
     @staticmethod
     def load_np(filename):
-        data = np.load(filename).astype('float32')
-        return data
+        return np.load(filename).astype('float32')
 
     @staticmethod
     def _generate_and_cache_phoneme_sequence(text, cache_path, cleaners, language, tp, add_blank):
@@ -117,8 +115,7 @@ class MyDataset(Dataset):
             phonemes = MyDataset._generate_and_cache_phoneme_sequence(
                 text, cache_path, cleaners, language, tp, add_blank)
         except (ValueError, IOError):
-            print(" [!] failed loading phonemes for {}. "
-                  "Recomputing.".format(wav_file))
+            print(f" [!] failed loading phonemes for {wav_file}. Recomputing.")
             phonemes = MyDataset._generate_and_cache_phoneme_sequence(
                 text, cache_path, cleaners, language, tp, add_blank)
         if enable_eos_bos:
@@ -162,23 +159,21 @@ class MyDataset(Dataset):
             # TODO: find a better fix
             return self.load_data(100)
 
-        sample = {
+        return {
             'text': text,
             'wav': wav,
             'attn': attn,
             'item_idx': self.items[idx][1],
             'speaker_name': speaker_name,
-            'wav_file_name': os.path.basename(wav_file)
+            'wav_file_name': os.path.basename(wav_file),
         }
-        return sample
 
     @staticmethod
     def _phoneme_worker(args):
         item = args[0]
         func_args = args[1]
         text, wav_file, *_ = item
-        phonemes = MyDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
-        return phonemes
+        return MyDataset._load_or_generate_phoneme_sequence(wav_file, text, *func_args)
 
     def compute_input_seq(self, num_workers=0):
         """compute input sequences separately. Call it before
@@ -214,7 +209,7 @@ class MyDataset(Dataset):
         idxs = np.argsort(lengths)
         new_items = []
         ignored = []
-        for i, idx in enumerate(idxs):
+        for idx in idxs:
             length = lengths[idx]
             if length < self.min_seq_len or length > self.max_seq_len:
                 ignored.append(idx)
@@ -231,13 +226,13 @@ class MyDataset(Dataset):
         self.items = new_items
 
         if self.verbose:
-            print(" | > Max length sequence: {}".format(np.max(lengths)))
-            print(" | > Min length sequence: {}".format(np.min(lengths)))
-            print(" | > Avg length sequence: {}".format(np.mean(lengths)))
+            print(f" | > Max length sequence: {np.max(lengths)}")
+            print(f" | > Min length sequence: {np.min(lengths)}")
+            print(f" | > Avg length sequence: {np.mean(lengths)}")
             print(
-                " | > Num. instances discarded by max-min (max={}, min={}) seq limits: {}"
-                .format(self.max_seq_len, self.min_seq_len, len(ignored)))
-            print(" | > Batch group size: {}.".format(self.batch_group_size))
+                f" | > Num. instances discarded by max-min (max={self.max_seq_len}, min={self.min_seq_len}) seq limits: {len(ignored)}"
+            )
+            print(f" | > Batch group size: {self.batch_group_size}.")
 
     def __len__(self):
         return len(self.items)

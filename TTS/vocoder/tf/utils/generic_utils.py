@@ -8,7 +8,7 @@ def to_camel(text):
 
 
 def setup_generator(c):
-    print(" > Generator Model: {}".format(c.generator_model))
+    print(f" > Generator Model: {c.generator_model}")
     MyModel = importlib.import_module('TTS.vocoder.tf.models.' +
                                       c.generator_model.lower())
     MyModel = getattr(MyModel, to_camel(c.generator_model))
@@ -21,8 +21,6 @@ def setup_generator(c):
             upsample_factors=c.generator_model_params['upsample_factors'],
             res_kernel=3,
             num_res_blocks=c.generator_model_params['num_res_blocks'])
-    if c.generator_model in 'melgan_fb_generator':
-        pass
     if c.generator_model in 'multiband_melgan_generator':
         model = MyModel(
             in_channels=c.audio['num_mels'],

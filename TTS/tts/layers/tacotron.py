@@ -365,7 +365,7 @@ class Decoder(nn.Module):
         self.attention_rnn_hidden = torch.zeros(1, device=inputs.device).repeat(B, 256)
         self.decoder_rnn_hiddens = [
             torch.zeros(1, device=inputs.device).repeat(B, 256)
-            for idx in range(len(self.decoder_rnns))
+            for _ in range(len(self.decoder_rnns))
         ]
         self.context_vec = inputs.data.new(B, self.in_channels).zero_()
         # cache attention inputs

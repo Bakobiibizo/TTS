@@ -47,13 +47,11 @@ class TacotronTrainTest(unittest.TestCase):
         model = Tacotron2(num_chars=24, r=c.r, num_speakers=5).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
-        count = 0
         for param, param_ref in zip(model.parameters(),
                                     model_ref.parameters()):
             assert (param - param_ref).sum() == 0, param
-            count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
-        for i in range(5):
+        for _ in range(5):
             mel_out, mel_postnet_out, align, stop_tokens = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
@@ -64,16 +62,13 @@ class TacotronTrainTest(unittest.TestCase):
             loss = loss + criterion(mel_postnet_out, mel_postnet_spec, mel_lengths) + stop_loss
             loss.backward()
             optimizer.step()
-        # check parameter changes
-        count = 0
-        for param, param_ref in zip(model.parameters(),
-                                    model_ref.parameters()):
+        for count, (param, param_ref) in enumerate(zip(model.parameters(),
+                                    model_ref.parameters())):
             # ignore pre-higway layer since it works conditional
             # if count not in [145, 59]:
-            assert (param != param_ref).any(
-            ), "param {} with shape {} not updated!! \n{}\n{}".format(
-                count, param.shape, param, param_ref)
-            count += 1
+            assert (
+                param != param_ref
+            ).any(), f"param {count} with shape {param.shape} not updated!! \n{param}\n{param_ref}"
 
 
 class MultiSpeakeTacotronTrainTest(unittest.TestCase):
@@ -101,13 +96,11 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
         model = Tacotron2(num_chars=24, r=c.r, num_speakers=5, speaker_embedding_dim=55).to(device)
         model.train()
         model_ref = copy.deepcopy(model)
-        count = 0
         for param, param_ref in zip(model.parameters(),
                                     model_ref.parameters()):
             assert (param - param_ref).sum() == 0, param
-            count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
-        for i in range(5):
+        for _ in range(5):
             mel_out, mel_postnet_out, align, stop_tokens = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_embeddings=speaker_embeddings)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
@@ -118,16 +111,13 @@ class MultiSpeakeTacotronTrainTest(unittest.TestCase):
             loss = loss + criterion(mel_postnet_out, mel_postnet_spec, mel_lengths) + stop_loss
             loss.backward()
             optimizer.step()
-        # check parameter changes
-        count = 0
-        for param, param_ref in zip(model.parameters(),
-                                    model_ref.parameters()):
+        for count, (param, param_ref) in enumerate(zip(model.parameters(),
+                                    model_ref.parameters())):
             # ignore pre-higway layer since it works conditional
             # if count not in [145, 59]:
-            assert (param != param_ref).any(
-            ), "param {} with shape {} not updated!! \n{}\n{}".format(
-                count, param.shape, param, param_ref)
-            count += 1
+            assert (
+                param != param_ref
+            ).any(), f"param {count} with shape {param.shape} not updated!! \n{param}\n{param_ref}"
 
 class TacotronGSTTrainTest(unittest.TestCase):
     #pylint: disable=no-self-use
@@ -160,7 +150,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
             assert (param - param_ref).sum() == 0, param
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
-        for i in range(10):
+        for _ in range(10):
             mel_out, mel_postnet_out, align, stop_tokens = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
@@ -180,9 +170,9 @@ class TacotronGSTTrainTest(unittest.TestCase):
             if name == 'gst_layer.encoder.recurrence.weight_hh_l0':
                 #print(param.grad)
                 continue
-            assert (param != param_ref).any(
-            ), "param {} {} with shape {} not updated!! \n{}\n{}".format(
-                name, count, param.shape, param, param_ref)
+            assert (
+                param != param_ref
+            ).any(), f"param {name} {count} with shape {param.shape} not updated!! \n{param}\n{param_ref}"
             count += 1
 
         # with file gst style
@@ -214,7 +204,7 @@ class TacotronGSTTrainTest(unittest.TestCase):
             assert (param - param_ref).sum() == 0, param
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
-        for i in range(10):
+        for _ in range(10):
             mel_out, mel_postnet_out, align, stop_tokens = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_ids)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
@@ -234,9 +224,9 @@ class TacotronGSTTrainTest(unittest.TestCase):
             if name == 'gst_layer.encoder.recurrence.weight_hh_l0':
                 #print(param.grad)
                 continue
-            assert (param != param_ref).any(
-            ), "param {} {} with shape {} not updated!! \n{}\n{}".format(
-                name, count, param.shape, param, param_ref)
+            assert (
+                param != param_ref
+            ).any(), f"param {name} {count} with shape {param.shape} not updated!! \n{param}\n{param_ref}"
             count += 1
 
 class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
@@ -269,7 +259,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
             assert (param - param_ref).sum() == 0, param
             count += 1
         optimizer = optim.Adam(model.parameters(), lr=c.lr)
-        for i in range(5):
+        for _ in range(5):
             mel_out, mel_postnet_out, align, stop_tokens = model.forward(
                 input_dummy, input_lengths, mel_spec, mel_lengths, speaker_embeddings=speaker_embeddings)
             assert torch.sigmoid(stop_tokens).data.max() <= 1.0
@@ -289,7 +279,7 @@ class SCGSTMultiSpeakeTacotronTrainTest(unittest.TestCase):
             name, param = name_param
             if name == 'gst_layer.encoder.recurrence.weight_hh_l0':
                 continue
-            assert (param != param_ref).any(
-            ), "param {} with shape {} not updated!! \n{}\n{}".format(
-                count, param.shape, param, param_ref)
+            assert (
+                param != param_ref
+            ).any(), f"param {count} with shape {param.shape} not updated!! \n{param}\n{param_ref}"
             count += 1

@@ -37,8 +37,10 @@ class SpeakerEncoder(nn.Module):
         # choise LSTM layer
         if use_lstm_with_projection:
             layers.append(LSTMWithProjection(input_dim, lstm_dim, proj_dim))
-            for _ in range(num_lstm_layers - 1):
-                layers.append(LSTMWithProjection(proj_dim, lstm_dim, proj_dim))
+            layers.extend(
+                LSTMWithProjection(proj_dim, lstm_dim, proj_dim)
+                for _ in range(num_lstm_layers - 1)
+            )
             self.layers = nn.Sequential(*layers)
         else:
             self.layers = LSTMWithoutProjection(input_dim, lstm_dim, proj_dim, num_lstm_layers)
@@ -98,9 +100,7 @@ class SpeakerEncoder(nn.Module):
         max_len = x.shape[1]
         embed = None
         num_iters = seq_lens / (num_frames - num_overlap)
-        cur_iter = 0
-        for offset in range(0, max_len, num_frames - num_overlap):
-            cur_iter += 1
+        for cur_iter, offset in enumerate(range(0, max_len, num_frames - num_overlap), start=1):
             end_offset = min(x.shape[1], offset + num_frames)
             frames = x[:, offset:end_offset]
             if embed is None:

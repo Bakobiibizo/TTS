@@ -101,7 +101,7 @@ def details():
 @app.route('/api/tts', methods=['GET'])
 def tts():
     text = request.args.get('text')
-    print(" > Model input: {}".format(text))
+    print(f" > Model input: {text}")
     wavs = synthesizer.tts(text)
     out = io.BytesIO()
     synthesizer.save_wav(wavs, out)

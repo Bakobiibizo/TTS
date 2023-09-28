@@ -214,14 +214,14 @@ class WaveRNN(nn.Module):
                                rnn_dims, batch_first=True)
             self.fc1 = nn.Linear(rnn_dims + self.aux_dims, fc_dims)
             self.fc2 = nn.Linear(fc_dims + self.aux_dims, fc_dims)
-            self.fc3 = nn.Linear(fc_dims, self.n_classes)
         else:
             self.I = nn.Linear(feat_dims + 1, rnn_dims)
             self.rnn1 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
             self.rnn2 = nn.GRU(rnn_dims, rnn_dims, batch_first=True)
             self.fc1 = nn.Linear(rnn_dims, fc_dims)
             self.fc2 = nn.Linear(fc_dims, fc_dims)
-            self.fc3 = nn.Linear(fc_dims, self.n_classes)
+
+        self.fc3 = nn.Linear(fc_dims, self.n_classes)
 
     def forward(self, x, mels):
         bsize = x.size(0)

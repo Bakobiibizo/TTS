@@ -36,25 +36,25 @@ print(" > Number of GPUs: ", num_gpus)
 
 def setup_loader(ap: AudioProcessor, is_val: bool=False, verbose: bool=False):
     if is_val:
-        loader = None
-    else:
-        dataset = MyDataset(ap,
-                            meta_data_eval if is_val else meta_data_train,
-                            voice_len=1.6,
-                            num_utter_per_speaker=c.num_utters_per_speaker,
-                            num_speakers_in_batch=c.num_speakers_in_batch,
-                            skip_speakers=False,
-                            storage_size=c.storage["storage_size"],
-                            sample_from_storage_p=c.storage["sample_from_storage_p"],
-                            additive_noise=c.storage["additive_noise"],
-                            verbose=verbose)
+        return None
+    dataset = MyDataset(ap,
+                        meta_data_eval if is_val else meta_data_train,
+                        voice_len=1.6,
+                        num_utter_per_speaker=c.num_utters_per_speaker,
+                        num_speakers_in_batch=c.num_speakers_in_batch,
+                        skip_speakers=False,
+                        storage_size=c.storage["storage_size"],
+                        sample_from_storage_p=c.storage["sample_from_storage_p"],
+                        additive_noise=c.storage["additive_noise"],
+                        verbose=verbose)
         # sampler = DistributedSampler(dataset) if num_gpus > 1 else None
-        loader = DataLoader(dataset,
-                            batch_size=c.num_speakers_in_batch,
-                            shuffle=False,
-                            num_workers=c.num_loader_workers,
-                            collate_fn=dataset.collate_fn)
-    return loader
+    return DataLoader(
+        dataset,
+        batch_size=c.num_speakers_in_batch,
+        shuffle=False,
+        num_workers=c.num_loader_workers,
+        collate_fn=dataset.collate_fn,
+    )
 
 
 def train(model, criterion, optimizer, scheduler, ap, global_step):
@@ -154,7 +154,7 @@ def main(args):  # pylint: disable=redefined-outer-name
     elif c.loss == "angleproto":
         criterion = AngleProtoLoss()
     else:
-        raise Exception("The %s  not is a loss supported" % c.loss)
+        raise Exception(f"The {c.loss}  not is a loss supported")
 
     if args.restore_path:
         checkpoint = torch.load(args.restore_path)
@@ -191,7 +191,7 @@ def main(args):  # pylint: disable=redefined-outer-name
         scheduler = None
 
     num_params = count_parameters(model)
-    print("\n > Model has {} parameters".format(num_params), flush=True)
+    print(f"\n > Model has {num_params} parameters", flush=True)
 
     # pylint: disable=redefined-outer-name
     meta_data_train, meta_data_eval = load_meta_data(c.datasets)

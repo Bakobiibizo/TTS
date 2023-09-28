@@ -73,13 +73,7 @@ class TacotronAbstract(ABC, nn.Module):
         self.postnet = None
 
         # multispeaker
-        if self.speaker_embedding_dim is None:
-            # if speaker_embedding_dim is None we need use the nn.Embedding, with default speaker_embedding_dim
-            self.embeddings_per_sample = False
-        else:
-            # if speaker_embedding_dim is not None we need use speaker embedding per sample
-            self.embeddings_per_sample = True
-
+        self.embeddings_per_sample = self.speaker_embedding_dim is not None
         # global style token
         if self.gst:
             self.decoder_in_features += gst_embedding_dim # add gst embedding dim
@@ -183,7 +177,7 @@ class TacotronAbstract(ABC, nn.Module):
             raise RuntimeError(
                 " [!] Model has speaker embedding layer but speaker_id is not provided"
             )
-        if hasattr(self, "speaker_embedding") and speaker_ids is not None:
+        if hasattr(self, "speaker_embedding"):
             self.speaker_embeddings = self.speaker_embedding(speaker_ids).unsqueeze(1)
         if hasattr(self, "speaker_project_mel") and speaker_ids is not None:
             self.speaker_embeddings_projected = self.speaker_project_mel(

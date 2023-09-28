@@ -26,8 +26,7 @@ class ConvBNBlock(keras.layers.Layer):
 class Postnet(keras.layers.Layer):
     def __init__(self, output_filters, num_convs, **kwargs):
         super(Postnet, self).__init__(**kwargs)
-        self.convolutions = []
-        self.convolutions.append(ConvBNBlock(512, 5, 'tanh', name='convolutions_0'))
+        self.convolutions = [ConvBNBlock(512, 5, 'tanh', name='convolutions_0')]
         for idx in range(1, num_convs - 1):
             self.convolutions.append(ConvBNBlock(512, 5, 'tanh', name=f'convolutions_{idx}'))
         self.convolutions.append(ConvBNBlock(output_filters, 5, 'linear', name=f'convolutions_{idx+1}'))
@@ -43,8 +42,10 @@ class Encoder(keras.layers.Layer):
     def __init__(self, output_input_dim, **kwargs):
         super(Encoder, self).__init__(**kwargs)
         self.convolutions = []
-        for idx in range(3):
-            self.convolutions.append(ConvBNBlock(output_input_dim, 5, 'relu', name=f'convolutions_{idx}'))
+        self.convolutions.extend(
+            ConvBNBlock(output_input_dim, 5, 'relu', name=f'convolutions_{idx}')
+            for idx in range(3)
+        )
         self.lstm = keras.layers.Bidirectional(keras.layers.LSTM(output_input_dim // 2, return_sequences=True, use_bias=True), name='lstm')
 
     def call(self, x, training=None):

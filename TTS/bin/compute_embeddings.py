@@ -66,31 +66,29 @@ if args.target_dataset != '':
     wav_files, _ = load_meta_data(dataset_config, eval_split=False)
     output_files = [wav_file[1].replace(data_path, args.output_path).replace(
         '.wav', '.npy') for wav_file in wav_files]
+elif len(split_ext) > 0 and split_ext[1].lower() == '.csv':
+    # Parse CSV
+    print(f'CSV file: {data_path}')
+    with open(data_path) as f:
+        wav_path = os.path.join(os.path.dirname(data_path), 'wavs')
+        print(f'Separator is: {sep}')
+        wav_files = []
+        for line in f:
+            components = line.split(sep)
+            if len(components) != 2:
+                print("Invalid line")
+                continue
+            wav_file = os.path.join(wav_path, f'{components[0]}.wav')
+            #print(f'wav_file: {wav_file}')
+            if os.path.exists(wav_file):
+                wav_files.append(wav_file)
+    print(f'Count of wavs imported: {len(wav_files)}')
 else:
-    # if target dataset is not defined
-    if len(split_ext) > 0 and split_ext[1].lower() == '.csv':
-        # Parse CSV
-        print(f'CSV file: {data_path}')
-        with open(data_path) as f:
-            wav_path = os.path.join(os.path.dirname(data_path), 'wavs')
-            wav_files = []
-            print(f'Separator is: {sep}')
-            for line in f:
-                components = line.split(sep)
-                if len(components) != 2:
-                    print("Invalid line")
-                    continue
-                wav_file = os.path.join(wav_path, components[0] + '.wav')
-                #print(f'wav_file: {wav_file}')
-                if os.path.exists(wav_file):
-                    wav_files.append(wav_file)
-        print(f'Count of wavs imported: {len(wav_files)}')
-    else:
         # Parse all wav files in data_path
-        wav_files = glob.glob(data_path + '/**/*.wav', recursive=True)
+    wav_files = glob.glob(f'{data_path}/**/*.wav', recursive=True)
 
-        output_files = [wav_file.replace(data_path, args.output_path).replace(
-            '.wav', '.npy') for wav_file in wav_files]
+    output_files = [wav_file.replace(data_path, args.output_path).replace(
+        '.wav', '.npy') for wav_file in wav_files]
 
 for output_file in output_files:
     os.makedirs(os.path.dirname(output_file), exist_ok=True)
@@ -120,10 +118,10 @@ for idx, wav_file in enumerate(tqdm(wav_files)):
     if args.target_dataset != '':
         # create speaker_mapping if target dataset is defined
         wav_file_name = os.path.basename(wav_file)
-        speaker_mapping[wav_file_name] = {}
-        speaker_mapping[wav_file_name]['name'] = speaker_name
-        speaker_mapping[wav_file_name]['embedding'] = embedd.flatten().tolist()
-
+        speaker_mapping[wav_file_name] = {
+            'name': speaker_name,
+            'embedding': embedd.flatten().tolist(),
+        }
 if args.target_dataset != '':
     # save speaker_mapping if target dataset is defined
     mapping_file_path = os.path.join(args.output_path, 'speakers.json')
